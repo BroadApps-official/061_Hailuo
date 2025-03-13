@@ -3,32 +3,44 @@ import Combine
 
 @MainActor
 class EffectsViewModel: ObservableObject {
-    @Published var popularEffects: [Effect] = []
-    @Published var allEffects: [Effect] = []
-    @Published var isLoading = false  // ✅ Предотвращает повторную загрузку
+  @Published var popularEffects: [Effect] = []
+  @Published var allEffects: [Effect] = []
+  @Published var isLoading = false
+  @Published var isGenerating = false
+  @Published var generationError: String?
 
-    func fetchEffects() async {
-        guard !isLoading else { return } // ✅ Если уже загружается, игнорируем
-        isLoading = true
+  private let hailuoManager = HailuoManager.shared
 
-        guard let url = URL(string: "https://futuretechapps.shop/filters?appId=com.test.test&userId=250276BA-7773-4B6F-A69C-569BC7DD73EA") else { return }
+  /// 📌 Загружает эффекты из `HailuoManager`
+  func fetchEffects() async {
+    guard !isLoading else { return }
+    isLoading = true
 
-        var request = URLRequest(url: url)
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.addValue("Bearer 0e9560af-ab3c-4480-8930-5b6c76b03eea", forHTTPHeaderField: "Authorization")
-
-        do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let response = try JSONDecoder().decode(FilterResponse.self, from: data)
-
-            if !response.error {
-                self.allEffects = response.data
-                self.popularEffects = Array(response.data.prefix(2))
-            }
-        } catch {
-            print("❌ Failed to fetch effects: \(error.localizedDescription)")
-        }
-
-        isLoading = false
+    do {
+      let effects = try await hailuoManager.fetchEffects()
+      self.allEffects = effects
+      self.popularEffects = Array(effects.prefix(2))
+    } catch {
+      print("❌ Failed to fetch effects: \(error.localizedDescription)")
     }
+
+    isLoading = false
+  }
+
+  /// 📌 Генерирует видео через `HailuoManager`
+  func generateVideo(from imageData: Data, filterId: String? = nil, model: String? = nil, prompt: String? = nil) async {
+    guard !isGenerating else { return }
+    isGenerating = true
+    generationError = nil
+
+    do {
+      try await hailuoManager.generateVideo(from: imageData, filterId: filterId, model: model, prompt: prompt)
+      print("✅ Video generation successful")
+    } catch {
+      generationError = error.localizedDescription
+      print("❌ Video generation failed: \(error.localizedDescription)")
+    }
+
+    isGenerating = false
+  }
 }

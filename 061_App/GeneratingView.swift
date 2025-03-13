@@ -1,263 +1,112 @@
-//  import SwiftUI
-//  import UserNotifications
-//
-//  struct GeneratingView: View {
-//      @EnvironmentObject var tabManager: TabManager
-//      @Environment(\.presentationMode) var presentationMode
-//      @EnvironmentObject var generationManager: AvatarGenerationManager
-//      @ObservedObject var avatarAPI = AvatarAPI.shared
-//      @ObservedObject private var notificationManager = NotificationManager.shared
-//      @State private var timeRemaining = 10
-//      @State private var showNotificationPermissionAlert = false
-//      @State private var navigateToProjectView = false
-//      @State private var navigateToResult = false
-//      @State private var resultImageUrl: String?
-//      @State private var jobId: String?
-//      @State private var generationStatus: String = "IN_QUEUE"
-//      @State private var previewURL: String?
-//      @State private var isGodMode: Bool = false
-//      @State private var timer: Timer?
-//
-//      let isArtwork: Bool
-//      let gender: String
-//      let uploadedPhotos: [UIImage]
-//      let generationMethod: (String, @escaping (Result<GenerationData, Error>) -> Void) -> Void
-//
-//      var body: some View {
-//          NavigationStack {
-//              VStack {
-//                  HStack {
-//                      Spacer()
-//                      Button(action: {
-//                          presentationMode.wrappedValue.dismiss()
-//                      }) {
-//                          Image(systemName: "xmark")
-//                              .foregroundColor(.white)
-//                              .font(.system(size: 20, weight: .bold))
-//                              .padding()
-//                              .background(Circle().fill(Color.gray.opacity(0.3)))
-//                      }
-//                      .padding()
-//                  }
-//                  Spacer()
-//
-//                  RotatingArcView()
-//                      .frame(width: 80, height: 80)
-//                      .padding(.bottom, 16)
-//
-//                  Text(generationStatus == "COMPLETED" ? "Generation Complete!" : "AI Generating ...")
-//                      .font(.system(size: 18, weight: .medium))
-//                      .foregroundColor(.white)
-//                      .onAppear {
-//                          startCountdown()
-//                          checkNotificationStatus()
-//                          startGeneration()
-//                      }
-//
-//                  Spacer()
-//
-//                    Button(action: {
-//                      if notificationManager.isNotificationsEnabled == false {
-//                            requestNotificationPermission()
-//                        }
-//                    }) {
-//                        Text("Get a notification")
-//                    }
-//                    .buttonStyle(NotificationButtonStyle(isDisabled: notificationManager.isNotificationsEnabled == true))
-//                    .padding(.horizontal, 16)
-//                    .padding(.bottom, 40)
-//                    .disabled(notificationManager.isNotificationsEnabled == false)
-//
-//              }
-//              .alert(isPresented: $showNotificationPermissionAlert) {
-//                  Alert(
-//                      title: Text("Notifications Disabled"),
-//                      message: Text("Please enable notifications in settings."),
-//                      dismissButton: .default(Text("OK"))
-//                  )
-//              }
-//              .navigationBarBackButtonHidden()
-//              .background(Color.black.edgesIgnoringSafeArea(.all))
-//              .navigationDestination(isPresented: $navigateToResult) {
-//                  ResultView(imageUrl: resultImageUrl ?? "")
-//              }
-//          }
-//      }
-//
-//      private func checkNotificationStatus() {
-//          UNUserNotificationCenter.current().getNotificationSettings { settings in
-//              DispatchQueue.main.async {
-//                notificationManager.isNotificationsEnabled = settings.authorizationStatus == .authorized
-//              }
-//          }
-//      }
-//
-//      private func startCountdown() {
-//          timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
-//              if timeRemaining > 0 {
-//                  timeRemaining -= 1
-//              } else {
-//                  timer.invalidate()
-//                  if notificationManager.isNotificationsEnabled == true {
-//                      sendNotification()
-//                  }
-//              }
-//          }
-//      }
-//
-//      private func savePlaceholderProject() {
-//          let formattedDate = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short)
-//
-//          let placeholderProject = Project(
-//              id: UUID().uuidString,
-//              imageName: "avatar-placeholder",
-//              date: formattedDate,
-//              isSelected: false,
-//              isLoading: true
-//          )
-//
-//          self.jobId = placeholderProject.id 
-//
-//          if isArtwork {
-//              ProjectManager.shared.addToArtwork(placeholderProject)
-//          } else {
-//              ProjectManager.shared.addToPreset(placeholderProject)
-//          }
-//      }
-//
-//    private func startGeneration() {
-//      generationManager.isGenerating = true
-//        generationMethod(avatarAPI.userId) { result in
-//            DispatchQueue.main.async {
-//                switch result {
-//                case .success(let response):
-//                    let jobId = response.jobId
-//                    let formattedDate = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short)
-//                    let placeholderProject = Project(
-//                        id: jobId,
-//                        imageName: "avatar-placeholder",
-//                        date: formattedDate,
-//                        isSelected: false,
-//                        isLoading: true
-//                    )
-//                    if isArtwork {
-//                        ProjectManager.shared.addToArtwork(placeholderProject)
-//                    } else {
-//                        ProjectManager.shared.addToPreset(placeholderProject)
-//                    }
-//                    self.jobId = jobId
-//                    self.generationStatus = response.status
-//                    self.isGodMode = response.isGodMode ?? false
-//                    self.startCheckingGenerationStatus()
-//
-//                case .failure(let error):
-//                    print("❌ \(error.localizedDescription)")
-//                }
-//            }
-//        }
-//    }
-//
-//    private func checkGenerationStatus(jobId: String, completion: @escaping (String, String?, String?) -> Void) {
-//            guard var urlComponents = URLComponents(string: "https://nextgenwebapps.shop/api/v1/services/status") else { return }
-//            urlComponents.queryItems = [
-//                URLQueryItem(name: "userId", value: avatarAPI.userId),
-//                URLQueryItem(name: "jobId", value: jobId)
-//            ]
-//
-//            guard let url = urlComponents.url else { return }
-//
-//            var request = URLRequest(url: url)
-//            request.httpMethod = "GET"
-//            request.addValue("Bearer \(AvatarAPI.bearerToken)", forHTTPHeaderField: "Authorization")
-//
-//            URLSession.shared.dataTask(with: request) { data, _, error in
-//                guard let data = data, error == nil else { return }
-//
-//                do {
-//                    let decodedResponse = try JSONDecoder().decode(GenerationStatusResponse.self, from: data)
-//                    let status = decodedResponse.data.status
-//                    let preview = decodedResponse.data.preview
-//                    let resultUrl = decodedResponse.data.resultUrl
-//                    completion(status, preview, resultUrl)
-//                } catch {
-//                    print("❌\(error)")
-//                }
-//            }.resume()
-//        }
-//
-//      private func startCheckingGenerationStatus() {
-//          guard let jobId = jobId else {
-//              return
-//          }
-//
-//          timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { timer in
-//              self.checkGenerationStatus(jobId: jobId) { status, preview, resultUrl in
-//                  DispatchQueue.main.async { [self] in
-//                      self.generationStatus = status
-//                      switch status {
-//                      case "COMPLETED":
-//                          self.previewURL = resultUrl
-//                          timer.invalidate()
-//                          self.updateProjectImage()
-//                          self.sendNotification()
-//                          generationManager.isGenerating = false
-//                      default:
-//                          print("⏳ Generation: \(status)")
-//                      }
-//                  }
-//              }
-//          }
-//      }
-//
-//      private func updateProjectImage() {
-//          guard let projectId = jobId, let previewURL = previewURL else {
-//              return
-//          }
-//          ProjectManager.shared.updateProjectImage(projectId: projectId, newImageUrl: previewURL)
-//          resultImageUrl = previewURL
-//          DispatchQueue.main.async {
-//              self.navigateToResult = true
-//          }
-//      }
-//
-//    private func sendNotification() {
-//        let content = UNMutableNotificationContent()
-//        content.title = "AI Generation Complete!"
-//        content.body = "Your AI-generated image is ready."
-//        content.sound = UNNotificationSound.default
-//
-//        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-//        let request = UNNotificationRequest(identifier: "aiGenerationComplete", content: content, trigger: trigger)
-//        UNUserNotificationCenter.current().add(request)
-//    }
-//
-//    private func requestNotificationPermission() {
-//        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
-//            DispatchQueue.main.async {
-//              notificationManager.isNotificationsEnabled = granted
-//                if !granted {
-//                    showNotificationPermissionAlert = true
-//                }
-//            }
-//        }
-//    }
-//  }
-//
-//struct NotificationButtonStyle: ButtonStyle {
-//    var isDisabled: Bool
-//
-//    func makeBody(configuration: Configuration) -> some View {
-//        configuration.label
-//            .font(.system(size: 18, weight: .bold))
-//            .frame(maxWidth: .infinity)
-//            .frame(height: 60)
-//            .background(
-//                isDisabled
-//                ? GradientStyles.gradient3
-//                : GradientStyles.gradient2
-//            )
-//            .foregroundColor(.white)
-//            .clipShape(Capsule())
-//            .opacity(isDisabled ? 0.8 : 1)
-//    }
-//}
+import SwiftUI
+
+struct GeneratingView: View {
+    let imageData: Data
+    let effectId: String
+    @StateObject private var apiManager = HailuoManager.shared
+    @Environment(\.dismiss) private var dismiss
+    @State private var timer: Timer?
+    @State private var showResultView = false
+    @State private var generatedVideoUrl: String?
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            // Заголовок
+            Text("Generating your video")
+                .font(.title2.bold())
+                .foregroundColor(.white)
+            
+            // Индикатор загрузки
+            if apiManager.isGenerating {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .scaleEffect(1.5)
+            }
+            
+            // Текст статуса
+            Text(apiManager.isGenerating ? "Please wait..." : "Done!")
+                .foregroundColor(.white)
+            
+            // Кнопка закрытия
+            if !apiManager.isGenerating {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Text("Close")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                }
+                .padding(.top, 20)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black)
+        .task {
+            await generateVideo()
+        }
+        .alert("Error", isPresented: .constant(apiManager.error != nil)) {
+            Button("OK") {
+                apiManager.error = nil
+                dismiss()
+            }
+        } message: {
+            if let error = apiManager.error {
+                Text(error)
+            }
+        }
+        .fullScreenCover(isPresented: $showResultView) {
+            if let videoUrl = generatedVideoUrl {
+                ResultView(videoUrl: videoUrl)
+            }
+        }
+    }
+    
+    private func generateVideo() async {
+        apiManager.isGenerating = true
+        do {
+            let response = try await apiManager.generateVideo(from: imageData, filterId: effectId)
+            if response.error {
+                apiManager.error = response.messages.first ?? "Unknown error occurred"
+            } else {
+                // Начинаем периодическую проверку статуса
+                startCheckingStatus()
+            }
+        } catch {
+            apiManager.error = error.localizedDescription
+        }
+    }
+    
+    private func startCheckingStatus() {
+        timer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { _ in
+            Task {
+                await checkGenerationStatus()
+            }
+        }
+    }
+    
+  private func checkGenerationStatus() async {
+      do {
+          await apiManager.fetchUserGenerations()
+          if let latestGeneration = apiManager.userGenerations.first(where: { $0.status == 3 }), 
+             let videoUrl = latestGeneration.result {
+              timer?.invalidate()
+              timer = nil
+              generatedVideoUrl = videoUrl
+              showResultView = true
+              apiManager.isGenerating = false
+          }
+      } catch {
+          apiManager.error = error.localizedDescription
+      }
+  }
+
+}
+
+#Preview {
+    GeneratingView(imageData: Data(), effectId: "test")
+}

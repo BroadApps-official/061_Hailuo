@@ -4,54 +4,38 @@ import AVKit
 struct EffectDetailView: View {
     let selectedEffect: Effect
     let effects: [Effect]
-    @State private var currentIndex: Int = 0
     @Environment(\.dismiss) private var dismiss
-    
+    @State private var isVideoLoaded = false
+    @State private var showAddPhotoSheet = false
+
     var body: some View {
         VStack {
-            // Горизонтальный скролл эффектов
-            TabView(selection: $currentIndex) {
-                ForEach(effects.indices, id: \.self) { index in
-                    EffectPreviewView(
-                        effect: effects[index],
-                        previousEffect: effects[safe: index - 1],
-                        nextEffect: effects[safe: index + 1],
-                        isFocused: index == currentIndex
-                    )
-                    .tag(index)
-                }
+            // Видео текущего эффекта
+            if let url = URL(string: selectedEffect.preview) {
+                VideoLoopPlayerWithLoading(url: url, isLoaded: $isVideoLoaded, effectId: selectedEffect.id)
+                    .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.width * 0.8)
+                    .cornerRadius(12)
+                    .clipped()
             }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-            .frame(height: UIScreen.main.bounds.height * 0.7)
-            .animation(.easeInOut(duration: 0.3), value: currentIndex)
-            .gesture(
-                DragGesture()
-                    .onEnded { value in
-                        let threshold: CGFloat = 50
-                        if value.translation.width > threshold {
-                            withAnimation {
-                                currentIndex = max(0, currentIndex - 1)
-                            }
-                        } else if value.translation.width < -threshold {
-                            withAnimation {
-                                currentIndex = min(effects.count - 1, currentIndex + 1)
-                            }
-                        }
-                    }
-            )
 
-            // Кнопка Try effect
-            NavigationLink(destination: ImageToVideoView(effects: effects, selectedEffect: selectedEffect)) {
-                Text("Try effect")
+            // Кнопка Continue (открывает sheet)
+            Button(action: {
+                showAddPhotoSheet = true // ✅ Открываем sheet
+            }) {
+                Text("Continue")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(LinearGradient(gradient: Gradient(colors: [.purple, .pink]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .background(GradientStyle.background)
                     .foregroundColor(.white)
                     .cornerRadius(10)
                     .padding(.horizontal, 20)
             }
-            .padding(.top, 10)
+            .padding(.top, 20)
+            .padding(.bottom, 30)
+            .sheet(isPresented: $showAddPhotoSheet) { // ✅ Открываем sheet
+              AddPhotoView(effectId: selectedEffect.id.description) // Экран "Add photo"
+            }
 
             Spacer()
         }
@@ -61,12 +45,12 @@ struct EffectDetailView: View {
                 Button(action: { dismiss() }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(ColorPalette.Accent.primary)
                 }
             }
-            
+
             ToolbarItem(placement: .principal) {
-                Text(effects[currentIndex].title)
+                Text(selectedEffect.title)
                     .font(.headline)
                     .foregroundColor(.white)
             }
@@ -75,17 +59,5 @@ struct EffectDetailView: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
         .background(Color.black.edgesIgnoringSafeArea(.all))
-        .onAppear {
-            if let firstIndex = effects.firstIndex(where: { $0.id == selectedEffect.id }) {
-                currentIndex = firstIndex
-            }
-        }
-    }
-}
-
-// MARK: - Array Extension
-extension Array {
-    subscript(safe index: Int) -> Element? {
-        return indices.contains(index) ? self[index] : nil
     }
 }

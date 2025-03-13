@@ -10,78 +10,82 @@ struct ImageToVideoView: View {
     @State private var selectedImage: UIImage?
 
     var body: some View {
-        VStack {
-            // Навбар с кнопкой назад и заголовком
-            HStack {
-                Button(action: { dismiss() }) {
-                    Image(systemName: "chevron.left")
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                HStack {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "chevron.left")
+                            .foregroundColor(.white)
+                            .font(.title2)
+                    }
+
+                    Spacer()
+
+                    Text("Create")
+                        .font(.headline)
                         .foregroundColor(.white)
-                        .font(.title2)
+
+                    Spacer()
+
+                    // Пустой элемент для центрирования заголовка
+                    Image(systemName: "chevron.left")
+                        .opacity(0)
                 }
+                .padding(.horizontal, 16)
 
-                Spacer()
-
-                Text("Create")
-                    .font(.headline)
-                    .foregroundColor(.white)
-
-                Spacer()
-
-                // Пустой элемент для центрирования заголовка
-                Image(systemName: "chevron.left")
-                    .opacity(0)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-
-            // Сегментированный контрол для выбора режима
-            HStack(spacing: 10) {
-                ModeButton(title: "I2V", isSelected: selectedTab == "I2V") {
-                    selectedTab = "I2V"
+                // Сегментированный контрол для выбора режима
+                HStack(spacing: 10) {
+                    ModeButton(title: "I2V", isSelected: selectedTab == "I2V") {
+                        selectedTab = "I2V"
+                    }
+                    ModeButton(title: "T2V", isSelected: selectedTab == "T2V") {
+                        selectedTab = "T2V"
+                    }
+                    ModeButton(title: "I&T2V", isSelected: selectedTab == "I&T2V") {
+                        selectedTab = "I&T2V"
+                    }
                 }
-                ModeButton(title: "T2V", isSelected: selectedTab == "T2V") {
-                    selectedTab = "T2V"
-                }
-                ModeButton(title: "I&T2V", isSelected: selectedTab == "I&T2V") {
-                    selectedTab = "I&T2V"
-                }
-            }
-            .padding(.horizontal, 16)
-
-            // Поле для загрузки изображения
-            ImagePickerView(selectedImage: $selectedImage)
-                .padding(.top, 10)
-
-            // Секция "Select an effect"
-            Text("Select an effect")
-                .font(.headline)
-                .foregroundColor(.white)
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
 
-            EffectGridView(effects: effects, selectedEffect: $currentEffect)
-                .padding(.horizontal, 16)
+                // Поле для загрузки изображения
+                ImagePickerView(selectedImage: $selectedImage)
+                    .padding(.top, 10)
 
-            // Кнопка "Create"
-            Button(action: { /* Логика создания */ }) {
-                Text("Create")
+                // Секция "Select an effect"
+                Text("Select an effect")
                     .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(currentEffect != nil ? GradientStyle.background : GradientStyle.gray)
                     .foregroundColor(.white)
-                    .cornerRadius(10)
                     .padding(.horizontal, 16)
-            }
-            .disabled(currentEffect == nil)
-            .padding(.top, 20)
+                    .padding(.top, 10)
 
-            Spacer()
+                EffectGridView(effects: effects, selectedEffect: $currentEffect)
+                    .frame(height: 200)
+                    .padding(.horizontal, 16)
+
+                Spacer()
+
+                // Кнопка "Create"
+                Button(action: { /* Логика создания */ }) {
+                    Text("Create")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(currentEffect != nil ? GradientStyle.background : GradientStyle.gray)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                .disabled(currentEffect == nil)
+                .padding(.horizontal, 16)
+                .padding(.bottom, geometry.safeAreaInsets.bottom + 16)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black)
         }
-        .background(Color.black.edgesIgnoringSafeArea(.all))
         .onAppear {
             currentEffect = selectedEffect
         }
+        .navigationBarBackButtonHidden()
     }
 }
 
@@ -145,39 +149,38 @@ struct EffectGridView: View {
     let effects: [Effect]
     @Binding var selectedEffect: Effect?
 
-  var body: some View {
-    ScrollView(.horizontal, showsIndicators: false) {
-      HStack(spacing: 10) {
-        ForEach(effects, id: \.id) { effect in
-          ZStack {
-            EffectCell(effect: effect)
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: 10) {
+                ForEach(effects, id: \.id) { effect in
+                    ZStack(alignment: .topTrailing) {
+                        EffectCell(effect: effect)
+                            .frame(width: 171, height: 171)
 
-            if selectedEffect?.id == effect.id {
-              RoundedRectangle(cornerRadius: 12)
-                .stroke(LinearGradient(gradient: Gradient(colors: [.purple, .pink]), startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2)
-                .frame(width: 171, height: 171)
-                .offset(y: -10)
-                .overlay(
-              Image("check")
-                .offset(x: -10, y: 10)
-                .cornerRadius(12)
-                .clipped()
-              )
-              }
-          }
-          .onTapGesture {
-            selectedEffect = effect
+                        if selectedEffect?.id == effect.id {
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(LinearGradient(gradient: Gradient(colors: [.purple, .pink]), startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2)
+                                .frame(width: 171, height: 171)
+                                .offset(y: -10)
+                            
+                            Image("check")
+                                .resizable()
+                                .frame(width: 24, height: 24)
+                                .padding(8)
+                                .offset(x: 10, y: -20)
+                        }
+                    }
+                    .onTapGesture {
+                        withAnimation {
+                            selectedEffect = effect
+                        }
                     }
                 }
             }
-//            .padding(.horizontal, 16)
+            .padding(.horizontal, 16)
         }
     }
 }
-
-
-
-
 
 // 📌 Заглушка под видео (можно заменить на `VideoLoopPlayer`)
 struct ImagePlaceholder: View {

@@ -122,7 +122,7 @@ struct EffectCell: View {
                     .cornerRadius(12)
 
                 if let url = URL(string: effect.preview) {
-                    VideoLoopPlayerWithLoading(url: url, isLoaded: $isVideoLoaded)
+                    VideoLoopPlayerWithLoading(url: url, isLoaded: $isVideoLoaded, effectId: effect.id)
                         .aspectRatio(2, contentMode: .fill)
                         .frame(width: 171, height: 171)
                         .cornerRadius(12)

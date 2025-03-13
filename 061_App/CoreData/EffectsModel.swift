@@ -12,9 +12,35 @@ struct Effect: Identifiable, Codable {
     }
 }
 
-
 struct FilterResponse: Codable {
     let error: Bool
     let messages: [String]
     let data: [Effect]
+}
+
+struct VideoGenerationResponse: Codable {
+    let error: Bool
+    let messages: [String]
+    let data: [String]
+}
+
+struct GenerationResponse: Codable {
+    let error: Bool
+    let messages: [String]
+    let data: [Generation]
+}
+
+struct Generation: Codable, Identifiable {
+    let id: Int
+    let status: Int
+    let prompt: String
+    let photo: String?
+    let result: String?
+}
+
+enum APIError: Error {
+  case invalidImageData
+  case invalidResponse
+  case invalidURL
+  case serverError
 }
