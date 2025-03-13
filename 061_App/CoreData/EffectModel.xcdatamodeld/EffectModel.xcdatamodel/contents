@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="21754" systemVersion="22E261" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="CachedEffect" representedClassName="CachedEffect" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="NO" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="preview" optional="NO" attributeType="String"/>
+        <attribute name="title" optional="NO" attributeType="String"/>
+        <attribute name="videoData" optional="YES" attributeType="Binary"/>
+        <attribute name="lastAccessed" optional="YES" attributeType="Date"/>
+    </entity>
+</model> 
