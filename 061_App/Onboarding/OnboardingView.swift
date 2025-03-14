@@ -5,7 +5,6 @@ struct OnboardingView: View {
   @Binding var hasSeenOnboarding: Bool
   @State private var currentPage = 0
   @State private var showAlert = false
-  @StateObject private var apiManager = AvatarAPI.shared
   @EnvironmentObject private var viewModel: EffectsViewModel
 
   let totalPages = 5
@@ -67,7 +66,6 @@ struct OnboardingView: View {
     .background(.black)
     .edgesIgnoringSafeArea(.all)
     .onAppear {
-      handleLoginAndSubscription()
       Task {
           await viewModel.fetchEffects()
       }
@@ -91,26 +89,7 @@ struct OnboardingView: View {
       }
     }
   }
-  
-  private func handleLoginAndSubscription() {
-    if !apiManager.isLoggedIn {
-      AvatarAPI.shared.loginUser { success in
-        if success {
-            AvatarAPI.shared.setPaidPlan(productId: 22) { result in
-              switch result {
-              case .success(let response):
-                print("ok")
-              case .failure(let error):
-                print("❌  \(error.localizedDescription)")
-              }
-            }
-        } else {
-          print("❌")
-        }
-      }
-    }
-  }
-  
+
   private func requestReview() {
     if let windowScene = UIApplication.shared.connectedScenes
       .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {

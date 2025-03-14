@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-class HailuoManager: ObservableObject {
+ final class HailuoManager: ObservableObject {
     static let shared = HailuoManager()
 
     private let baseURL = "https://futuretechapps.shop"
@@ -90,38 +90,33 @@ class HailuoManager: ObservableObject {
         return try decoder.decode(VideoGenerationResponse.self, from: data)
     }
 
-  func fetchUserGenerations() async {
-          guard let url = URL(string: "\(baseURL)/generations?appId=\(appId)&userId=\(userId)") else { return }
-
-          var request = URLRequest(url: url)
-          request.addValue("application/json", forHTTPHeaderField: "Accept")
-          request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-
-          do {
-              let (data, response) = try await URLSession.shared.data(for: request)
-
-              guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                  throw APIError.invalidResponse
-              }
-
-              let decodedResponse = try JSONDecoder().decode(GenerationResponse.self, from: data)
-
-              if !decodedResponse.error {
-                  let previousGenerations = userGenerations
-                  userGenerations = decodedResponse.data
-
-                  // ✅ Найдем новые генерации, которых раньше не было
-                  let newEntries = userGenerations.filter { newGen in
-                      !previousGenerations.contains(where: { $0.id == newGen.id })
-                  }
-
-                  if !newEntries.isEmpty {
-                      newGenerations = newEntries  // ✅ Обновляем массив новых генераций
-                  }
-              }
-          } catch {
-              self.error = error.localizedDescription
-              print("❌ Failed to fetch user generations: \(error.localizedDescription)")
-          }
+  func fetchUserGenerations() async throws -> [Generation] {
+      guard let url = URL(string: "\(baseURL)/generations?appId=\(appId)&userId=\(userId)") else {
+          throw APIError.invalidURL
       }
+
+      var request = URLRequest(url: url)
+      request.addValue("application/json", forHTTPHeaderField: "Accept")
+      request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+      let (data, response) = try await URLSession.shared.data(for: request)
+
+      guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+          throw APIError.invalidResponse
+      }
+
+      let decodedResponse = try JSONDecoder().decode(GenerationResponse.self, from: data)
+
+      if decodedResponse.error {
+          throw APIError.serverError
+      }
+
+      // ✅ Сохраняем данные
+      DispatchQueue.main.async {
+          self.userGenerations = decodedResponse.data
+      }
+
+      return decodedResponse.data // ✅ Теперь возвращаем массив
+  }
+
 }

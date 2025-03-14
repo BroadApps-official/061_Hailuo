@@ -62,9 +62,13 @@ struct MainContentView: View {
 
 
 struct StartCreatingSection: View {
+    @State private var showTextToVideo = false
+    
     var body: some View {
         HStack(spacing: 20) {
-            Button(action: {}) {
+            Button(action: {
+                showTextToVideo = true
+            }) {
                 VStack {
                     Image(systemName: "sparkles")
                         .font(.title)
@@ -76,6 +80,9 @@ struct StartCreatingSection: View {
                 .cornerRadius(10)
             }
             .foregroundColor(.white)
+            .fullScreenCover(isPresented: $showTextToVideo) {
+                TextToVideoView()
+            }
 
             Button(action: {}) {
                 VStack {

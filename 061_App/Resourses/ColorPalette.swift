@@ -69,7 +69,7 @@ struct GradientStyle {
     )
 
   static let gray = LinearGradient(
-    gradient: Gradient(colors: [Color.gray, Color.gray]),
+    gradient: Gradient(colors: [Color(hex: "#1E1E1E"), Color(hex: "#1E1E1E")]),
       startPoint: .leading,
       endPoint: .trailing
   )

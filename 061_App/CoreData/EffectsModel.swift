@@ -24,19 +24,20 @@ struct VideoGenerationResponse: Codable {
     let data: [String]
 }
 
-struct GenerationResponse: Codable {
+struct GenerationResponse: Decodable {
     let error: Bool
     let messages: [String]
     let data: [Generation]
 }
 
-struct Generation: Codable, Identifiable {
+struct Generation: Decodable {
     let id: Int
     let status: Int
-    let prompt: String
+    let prompt: String? 
     let photo: String?
     let result: String?
 }
+
 
 enum APIError: Error {
   case invalidImageData

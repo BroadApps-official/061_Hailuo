@@ -4,7 +4,7 @@ struct ResultView: View {
     let videoUrl: String
     @Environment(\.dismiss) private var dismiss
     @State private var isLoading = true
-    
+
     var body: some View {
         VStack(spacing: 20) {
             // Заголовок
@@ -13,13 +13,7 @@ struct ResultView: View {
                 .foregroundColor(.white)
             
             // Видео плеер
-            if isLoading {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .scaleEffect(1.5)
-            }
-            
-            VideoLoopPlayer(url: URL(string: videoUrl)!, isLoading: $isLoading)
+          VideoLoopPlayer(url: URL(string: videoUrl)!, isLoading: $isLoading)
                 .frame(height: 400)
                 .cornerRadius(12)
             
