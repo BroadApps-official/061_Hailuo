@@ -133,8 +133,6 @@ struct PaywallView: View {
     }
 }
 
-// MARK: - Вспомогательные компоненты
-
 struct SubscriptionFeature: View {
     let text: String
     var body: some View {
@@ -184,7 +182,6 @@ struct SubscriptionOptionView: View {
     }
 }
 
-// MARK: - Preview
 #Preview {
     PaywallView()
 }

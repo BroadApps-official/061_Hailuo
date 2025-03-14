@@ -20,7 +20,6 @@ struct AddPhotoView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 🔹 Верхний заголовок с индикатором
             VStack {
                 Capsule()
                     .frame(width: 40, height: 4)
@@ -35,7 +34,6 @@ struct AddPhotoView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // 🔹 Bad examples
                     Text("Bad examples")
                         .font(.headline)
                         .foregroundColor(.white)
@@ -50,7 +48,6 @@ struct AddPhotoView: View {
                         .frame(maxWidth: .infinity)
                         .cornerRadius(12)
 
-                    // 🔹 Good examples
                     Text("Good examples")
                         .font(.headline)
                         .foregroundColor(.white)
@@ -71,7 +68,6 @@ struct AddPhotoView: View {
 
             Spacer()
 
-            // 🔹 Кнопки "Take a photo" и "From the gallery"
             VStack(spacing: 8) {
                 HStack(spacing: 12) {
                     Button(action: {
@@ -180,7 +176,6 @@ struct AddPhotoView: View {
     }
 }
 
-// MARK: - ImagePicker
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var imageData: Data?
     let sourceType: UIImagePickerController.SourceType

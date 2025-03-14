@@ -7,13 +7,13 @@ class TabManager: ObservableObject {
 
 struct HomeView: View {
     @StateObject var tabManager = TabManager()
-    @StateObject private var effectsViewModel = EffectsViewModel() // 👈 Создаем здесь
+    @StateObject private var effectsViewModel = EffectsViewModel()
 
     var body: some View {
         TabView(selection: $tabManager.selectedTab) {
             MainContentView()
                 .environmentObject(tabManager)
-                .environmentObject(effectsViewModel) // 👈 Передаем внутрь
+                .environmentObject(effectsViewModel)
                 .tabItem {
                     VStack {
                         Image(tabManager.selectedTab == 0 ? "tab1select" : "tab1")
@@ -44,8 +44,6 @@ struct HomeView: View {
             let appearance = UITabBarAppearance()
             appearance.configureWithOpaqueBackground()
             appearance.backgroundColor = .black
-            
-            // Добавляем разделитель сверху
             appearance.shadowColor = UIColor(white: 0.2, alpha: 1.0)
             appearance.shadowImage = UIImage()
             

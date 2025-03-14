@@ -60,10 +60,10 @@ struct MainContentView: View {
     }
 }
 
-
 struct StartCreatingSection: View {
     @State private var showTextToVideo = false
-    
+    @State private var showImageTextToVideo = false
+
     var body: some View {
         HStack(spacing: 20) {
             Button(action: {
@@ -76,7 +76,13 @@ struct StartCreatingSection: View {
                         .font(.footnote)
                 }
                 .frame(width: 171, height: 70)
-                .background(LinearGradient(gradient: Gradient(colors: [.purple, .pink]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [.purple, .pink]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .cornerRadius(10)
             }
             .foregroundColor(.white)
@@ -84,7 +90,9 @@ struct StartCreatingSection: View {
                 TextToVideoView()
             }
 
-            Button(action: {}) {
+            Button(action: {
+                showImageTextToVideo = true
+            }) {
                 VStack {
                     Image(systemName: "sparkles")
                         .font(.title2)
@@ -96,9 +104,13 @@ struct StartCreatingSection: View {
                 .cornerRadius(10)
             }
             .foregroundColor(.white)
+            .fullScreenCover(isPresented: $showImageTextToVideo) {
+                ImageTextToVideoView()
+            }
         }
     }
 }
+
 
 struct EffectRow: View {
     let effects: [Effect]

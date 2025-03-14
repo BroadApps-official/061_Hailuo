@@ -8,7 +8,7 @@ class SubscriptionManager: ObservableObject {
     @Published var productsApphud: [ApphudProduct] = []
     @Published var isSubscribed: Bool = false
 
-    private let paywallID = "main" // ID пэйволла
+    private let paywallID = "main"
 
     private init() {
         Task {
@@ -17,7 +17,6 @@ class SubscriptionManager: ObservableObject {
         }
     }
 
-    /// Загружает пэйволл и получает продукты
     func loadPaywalls() async {
         await withCheckedContinuation { continuation in
             Apphud.paywallsDidLoadCallback { paywalls, error in
@@ -40,7 +39,6 @@ class SubscriptionManager: ObservableObject {
         }
     }
 
-    /// Проверяет активные подписки
     func checkSubscriptionStatus() async {
         let result = Apphud.hasPremiumAccess()
         DispatchQueue.main.async {
@@ -49,7 +47,6 @@ class SubscriptionManager: ObservableObject {
         }
     }
 
-    /// Покупка подписки
     func startPurchase(product: ApphudProduct, completion: @escaping (Bool) -> Void) {
         Apphud.purchase(product) { [weak self] result in
             guard let self = self else { return }
@@ -79,7 +76,6 @@ class SubscriptionManager: ObservableObject {
         }
     }
 
-    /// Восстановление подписок
     func restorePurchases(completion: @escaping (Bool) -> Void) {
         Apphud.restorePurchases { subscriptions, _, error in
             if let error = error {
@@ -99,7 +95,6 @@ class SubscriptionManager: ObservableObject {
         }
     }
 
-    /// Получает цену продукта по `productId`
     func getProductPrice(for productId: String) -> String {
         guard let product = productsApphud.first(where: { $0.skProduct?.productIdentifier == productId }) else {
             return "Loading..."

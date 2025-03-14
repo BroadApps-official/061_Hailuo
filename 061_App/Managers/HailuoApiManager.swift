@@ -10,13 +10,12 @@ import Combine
     private let token = "0e9560af-ab3c-4480-8930-5b6c76b03eea"
 
      @Published var userGenerations: [Generation] = []
-     @Published var newGenerations: [Generation] = []  // ✅ Новые элементы
+     @Published var newGenerations: [Generation] = []
      @Published var isGenerating = false
      @Published var error: String?
 
     private init() {}
 
-    /// 📌 Загружает список эффектов
     func fetchEffects() async throws -> [Effect] {
         guard let url = URL(string: "\(baseURL)/filters?appId=\(appId)&userId=\(userId)") else {
             throw APIError.invalidURL
@@ -42,7 +41,6 @@ import Combine
         return filterResponse.data
     }
 
-    /// 📌 Генерирует видео на сервере
     func generateVideo(from imageData: Data, filterId: String? = nil, model: String? = nil, prompt: String? = nil) async throws -> VideoGenerationResponse {
         let boundary = UUID().uuidString
         var request = URLRequest(url: URL(string: "\(baseURL)/generate")!)
@@ -53,7 +51,6 @@ import Combine
 
         var bodyData = Data()
 
-        // ✅ Добавляем параметры
         let parameters: [String: String?] = [
             "appId": appId,
             "userId": userId,
@@ -70,7 +67,6 @@ import Combine
             }
         }
 
-        // ✅ Добавляем изображение
         bodyData.append("--\(boundary)\r\n".data(using: .utf8)!)
         bodyData.append("Content-Disposition: form-data; name=\"file\"; filename=\"image.jpg\"\r\n".data(using: .utf8)!)
         bodyData.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
@@ -111,12 +107,11 @@ import Combine
           throw APIError.serverError
       }
 
-      // ✅ Сохраняем данные
       DispatchQueue.main.async {
           self.userGenerations = decodedResponse.data
       }
 
-      return decodedResponse.data // ✅ Теперь возвращаем массив
+      return decodedResponse.data
   }
 
 }

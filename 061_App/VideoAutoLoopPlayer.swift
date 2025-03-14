@@ -9,8 +9,7 @@ struct VideoLoopPlayerWithLoading: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let player: AVQueuePlayer
         let playerItem: AVPlayerItem
-        
-        // Сначала проверяем кэш
+
         if let cachedData = CoreDataManager.shared.getCachedVideoData(for: effectId) {
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(effectId).mp4")
             do {
@@ -24,8 +23,7 @@ struct VideoLoopPlayerWithLoading: UIViewControllerRepresentable {
         } else {
             player = AVQueuePlayer(url: url)
             playerItem = AVPlayerItem(url: url)
-            
-            // Загружаем видео и сохраняем в кэш
+
             URLSession.shared.dataTask(with: url) { data, response, error in
                 if let data = data {
                     CoreDataManager.shared.cacheEffect(
@@ -37,7 +35,7 @@ struct VideoLoopPlayerWithLoading: UIViewControllerRepresentable {
         }
         
         let looper = AVPlayerLooper(player: player, templateItem: playerItem)
-        player.isMuted = true // Отключаем звук для оптимизации
+        player.isMuted = true
 
         let playerViewController = AVPlayerViewController()
         playerViewController.player = player
@@ -57,7 +55,6 @@ struct VideoLoopPlayerWithLoading: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
         if !isLoaded {
-            // Проверяем кэш при обновлении
             if let cachedData = CoreDataManager.shared.getCachedVideoData(for: context.coordinator.effectId) {
                 let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(context.coordinator.effectId).mp4")
                 do {
@@ -85,7 +82,6 @@ struct VideoLoopPlayerWithLoading: UIViewControllerRepresentable {
         var effectId: Int = 0
         
         deinit {
-            // Очищаем ресурсы при уничтожении
             playerLooper?.disableLooping()
             player?.pause()
             player = nil
@@ -111,7 +107,6 @@ struct VideoLoopPlayer: UIViewControllerRepresentable {
         context.coordinator.playerLooper = looper
         context.coordinator.player = player
 
-        // Отслеживаем окончание загрузки видео
         if #available(iOS 16.0, *) {
             Task {
                 do {

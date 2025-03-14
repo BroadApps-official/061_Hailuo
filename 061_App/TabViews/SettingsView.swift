@@ -11,7 +11,6 @@ struct SettingsView: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    // MARK: - Верхний заголовок
                     HStack {
                         Text("Settings")
                             .font(Typography.title2Emphasized)
@@ -23,25 +22,19 @@ struct SettingsView: View {
                     }
                     .padding(.bottom, 16)
 
-                    // MARK: - Support Section
                     SectionHeader(title: "Support us")
                     SettingButton(title: "Rate app", icon: "set1", action: rateApp)
                     SettingButton(title: "Share with friends", icon: "set2", action: shareApp)
-
-                    // MARK: - Purchases & Actions Section
                     SectionHeader(title: "Purchases & Actions")
                     SettingButton(title: "Upgrade plan", icon: "set3", action: upgradePlan)
                     ToggleSetting(title: "Notifications", icon: "set4", isOn: $isNotificationsEnabled, action: toggleNotifications)
                     SettingButton(title: "Clear cache", icon: "set5", extraText: cacheSize, action: clearCache)
                     SettingButton(title: "Restore purchases", icon: "set6", action: restorePurchases)
-
-                    // MARK: - Info & Legal Section
                     SectionHeader(title: "Info & legal")
                     SettingButton(title: "Contact us", icon: "set7", action: contactSupport)
                     SettingButton(title: "Privacy Policy", icon: "set8", action: openPrivacyPolicy)
                     SettingButton(title: "Usage Policy", icon: "set9", action: openUsagePolicy)
 
-                    // MARK: - App Version
                     Text("App Version: 1.0.0")
                         .foregroundColor(.gray)
                         .font(.caption)
@@ -78,8 +71,6 @@ struct SettingsView: View {
             }
         }
     }
-
-    // MARK: - Функции
 
     private func rateApp() {
         if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
@@ -166,8 +157,6 @@ struct SettingsView: View {
         }
     }
 }
-
-// MARK: - Вспомогательные UI элементы
 
 struct SectionHeader: View {
     let title: String
@@ -258,8 +247,6 @@ struct ProBadgeButton: View {
     }
 }
 
-
-// MARK: - Preview
 #Preview {
     SettingsView()
 }

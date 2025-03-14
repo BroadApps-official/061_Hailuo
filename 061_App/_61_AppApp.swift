@@ -55,7 +55,7 @@ struct MyApp: App {
   }
 
     lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "VideoDatabase")
+        let container = NSPersistentContainer(name: "EffectModel")
         container.loadPersistentStores { (storeDescription, error) in
             if let error = error {
                 fatalError("❌ Unresolved error \(error)")

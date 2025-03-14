@@ -10,17 +10,16 @@ struct EffectDetailView: View {
 
     var body: some View {
         VStack {
-            // Видео текущего эффекта
             if let url = URL(string: selectedEffect.preview) {
                 VideoLoopPlayerWithLoading(url: url, isLoaded: $isVideoLoaded, effectId: selectedEffect.id)
                     .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.width * 0.8)
+                    .scaleEffect(2)
                     .cornerRadius(12)
                     .clipped()
             }
 
-            // Кнопка Continue (открывает sheet)
             Button(action: {
-                showAddPhotoSheet = true // ✅ Открываем sheet
+                showAddPhotoSheet = true
             }) {
                 Text("Continue")
                     .font(.headline)
@@ -33,8 +32,8 @@ struct EffectDetailView: View {
             }
             .padding(.top, 20)
             .padding(.bottom, 30)
-            .sheet(isPresented: $showAddPhotoSheet) { // ✅ Открываем sheet
-              AddPhotoView(effectId: selectedEffect.id.description) // Экран "Add photo"
+            .sheet(isPresented: $showAddPhotoSheet) {
+              AddPhotoView(effectId: selectedEffect.id.description) 
             }
 
             Spacer()

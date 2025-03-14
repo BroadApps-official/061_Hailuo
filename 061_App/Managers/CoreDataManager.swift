@@ -5,7 +5,6 @@ class CoreDataManager {
     static let shared = CoreDataManager()
     
     private init() {
-        // Очищаем старый кэш при запуске
         clearOldCache(olderThan: 7)
     }
     
@@ -32,8 +31,6 @@ class CoreDataManager {
             }
         }
     }
-    
-    // MARK: - Effect Caching
     
     private var cacheQueue = DispatchQueue(label: "com.app.cacheQueue", qos: .userInitiated)
     

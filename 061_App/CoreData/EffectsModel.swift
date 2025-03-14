@@ -38,6 +38,11 @@ struct Generation: Decodable {
     let result: String?
 }
 
+struct GenerationStatusResponse: Codable {
+    let status: String
+    let error: String?
+    let resultUrl: String?
+}
 
 enum APIError: Error {
   case invalidImageData
