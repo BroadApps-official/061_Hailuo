@@ -1,6 +1,6 @@
 import Foundation
 
-struct GeneratedVideo: Codable, Identifiable {
+struct GeneratedVideo: Identifiable, Codable {
     let id: String
     let generationId: String
     let videoUrl: String
@@ -16,21 +16,24 @@ struct GeneratedVideo: Codable, Identifiable {
     }
 }
 
+@MainActor
 class GeneratedVideosManager: ObservableObject {
     static let shared = GeneratedVideosManager()
+    
     @Published private(set) var videos: [GeneratedVideo] = []
-    private let userDefaults = UserDefaults.standard
-    private let videosKey = "generatedVideos"
+    private let videosKey = "savedVideos"
     
     private init() {
         loadVideos()
     }
     
+    @MainActor
     func addVideo(_ video: GeneratedVideo) {
         videos.append(video)
         saveVideos()
     }
     
+    @MainActor
     func updateVideo(_ video: GeneratedVideo) {
         if let index = videos.firstIndex(where: { $0.id == video.id }) {
             videos[index] = video
@@ -38,38 +41,41 @@ class GeneratedVideosManager: ObservableObject {
         }
     }
     
-    func updateVideoStatus(generationId: String, status: GeneratedVideo.VideoStatus, resultUrl: String? = nil) {
-        if let index = videos.firstIndex(where: { $0.generationId == generationId }) {
-            var video = videos[index]
-            video.status = status
-            video.resultUrl = resultUrl
-            videos[index] = video
+    @MainActor
+    func updateVideoStatus(id: String, status: GeneratedVideo.VideoStatus, resultUrl: String? = nil) {
+        if let index = videos.firstIndex(where: { $0.id == id }) {
+            var updatedVideo = videos[index]
+            updatedVideo.status = status
+            if let resultUrl = resultUrl {
+                updatedVideo.resultUrl = resultUrl
+            }
+            videos[index] = updatedVideo
             saveVideos()
         }
     }
     
+    @MainActor
     func deleteVideo(_ video: GeneratedVideo) {
-        if let index = videos.firstIndex(where: { $0.id == video.id }) {
-            videos.remove(at: index)
-            saveVideos()
-        }
+        videos.removeAll { $0.id == video.id }
+        saveVideos()
     }
     
+    @MainActor
     func clearVideos() {
         videos.removeAll()
         saveVideos()
     }
     
-    private func loadVideos() {
-        if let data = userDefaults.data(forKey: videosKey),
-           let decodedVideos = try? JSONDecoder().decode([GeneratedVideo].self, from: data) {
-            videos = decodedVideos
+    private func saveVideos() {
+        if let encoded = try? JSONEncoder().encode(videos) {
+            UserDefaults.standard.set(encoded, forKey: videosKey)
         }
     }
     
-    private func saveVideos() {
-        if let encoded = try? JSONEncoder().encode(videos) {
-            userDefaults.set(encoded, forKey: videosKey)
+    private func loadVideos() {
+        if let data = UserDefaults.standard.data(forKey: videosKey),
+           let decoded = try? JSONDecoder().decode([GeneratedVideo].self, from: data) {
+            videos = decoded
         }
     }
 } 

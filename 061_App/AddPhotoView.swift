@@ -90,7 +90,7 @@ struct AddPhotoView: View {
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(GradientStyle.background)
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .cornerRadius(12)
                     }
                 }

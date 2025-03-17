@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		573046C72D8856FA004590A9 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 573046C62D8856FA004590A9 /* Lottie */; };
 		57E1DD952D80AA7E006DDD70 /* ApphudSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 57E1DD942D80AA7E006DDD70 /* ApphudSDK */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +29,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				57E1DD952D80AA7E006DDD70 /* ApphudSDK in Frameworks */,
+				573046C72D8856FA004590A9 /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +73,7 @@
 			name = 061_App;
 			packageProductDependencies = (
 				57E1DD942D80AA7E006DDD70 /* ApphudSDK */,
+				573046C62D8856FA004590A9 /* Lottie */,
 			);
 			productName = 061_App;
 			productReference = 57E1DCA82D8070F2006DDD70 /* 061_App.app */;
@@ -102,6 +105,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				57E1DD932D80AA7E006DDD70 /* XCRemoteSwiftPackageReference "ApphudSDK" */,
+				573046C52D8856FA004590A9 /* XCRemoteSwiftPackageReference "lottie-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 57E1DCA92D8070F2006DDD70 /* Products */;
@@ -353,6 +357,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		573046C52D8856FA004590A9 /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.5.1;
+			};
+		};
 		57E1DD932D80AA7E006DDD70 /* XCRemoteSwiftPackageReference "ApphudSDK" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apphud/ApphudSDK";
@@ -364,6 +376,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		573046C62D8856FA004590A9 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 573046C52D8856FA004590A9 /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
+		};
 		57E1DD942D80AA7E006DDD70 /* ApphudSDK */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 57E1DD932D80AA7E006DDD70 /* XCRemoteSwiftPackageReference "ApphudSDK" */;

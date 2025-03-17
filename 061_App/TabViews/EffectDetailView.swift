@@ -10,6 +10,7 @@ struct EffectDetailView: View {
 
     var body: some View {
         VStack {
+          Spacer()
             if let url = URL(string: selectedEffect.preview) {
                 VideoLoopPlayerWithLoading(url: url, isLoaded: $isVideoLoaded, effectId: selectedEffect.id)
                     .frame(width: UIScreen.main.bounds.width * 0.8, height: UIScreen.main.bounds.width * 0.8)
@@ -17,6 +18,8 @@ struct EffectDetailView: View {
                     .cornerRadius(12)
                     .clipped()
             }
+
+          Spacer()
 
             Button(action: {
                 showAddPhotoSheet = true
@@ -26,7 +29,7 @@ struct EffectDetailView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(GradientStyle.background)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                     .cornerRadius(10)
                     .padding(.horizontal, 20)
             }
@@ -36,7 +39,6 @@ struct EffectDetailView: View {
               AddPhotoView(effectId: selectedEffect.id.description) 
             }
 
-            Spacer()
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

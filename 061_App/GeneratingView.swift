@@ -10,7 +10,7 @@ struct GeneratingView: View {
     @State private var timer: Timer?
     @State private var showResultView = false
     @State private var generatedVideoUrl: String?
-    @State private var isGenerating = false
+    @State private var isGenerating = true
     @State private var error: String?
     @State private var lastGenerationId: String?
 
@@ -22,31 +22,16 @@ struct GeneratingView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Generating your video")
+          Spacer()
+            LottieView(animationName: "animation")
+              .frame(width: 166, height: 235)
+            Text("Creating a video...")
                 .font(.title2.bold())
                 .foregroundColor(.white)
 
-            if isGenerating {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .scaleEffect(1.5)
-            }
-
-            Text(isGenerating ? "Please wait..." : "Done!")
+            Text("Generation usually takes about a minute")
                 .foregroundColor(.white)
-
-            if !isGenerating {
-                Button(action: { dismiss() }) {
-                    Text("Close")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue)
-                        .cornerRadius(12)
-                }
-                .padding(.top, 20)
-            }
+          Spacer()
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -79,14 +64,22 @@ struct GeneratingView: View {
                 if response.error {
                     error = response.messages.first ?? "Unknown error occurred"
                 } else {
-                    print("🚀 Запускаем проверку статуса...")
-                    startCheckingStatus()
+                    // Получаем список генераций
+                    let generations = try await HailuoManager.shared.fetchUserGenerations()
+                    if let lastGeneration = generations.last {
+                        print("✅ Найдена последняя генерация: ID \(lastGeneration.id), статус \(lastGeneration.status)")
+                        lastGenerationId = String(lastGeneration.id)
+                        print("🚀 Запускаем проверку статуса...")
+                        startCheckingStatus()
+                    } else {
+                        error = "Не удалось найти последнюю генерацию"
+                    }
                 }
             } else if let text = text, let imageData = imageData, let imageUrl = saveImageToTempDirectory(imageData) {
                 print("📸 Запускаем `generatePikaScenes`...")
-              apiManager.generatePikaScenes(imageUrls: [imageUrl], promptText: text) { result in
-                              handleGenerationResult(result)
-                          }
+                apiManager.generatePikaScenes(imageUrls: [imageUrl], promptText: text) { result in
+                    handleGenerationResult(result)
+                }
             } else if let text = text {
                 print("📝 Запускаем `generateTextToVideo`...")
                 apiManager.generateTextToVideo(promptText: text) { result in
@@ -154,55 +147,55 @@ struct GeneratingView: View {
         }
     }
 
-    private func checkGenerationStatus(for generationId: String) async {
-        print("🔍 [API CALL] Проверяем статус генерации для ID: \(generationId)")
+  @MainActor
+  private func checkGenerationStatus(for generationId: String) async {
+      print("🔍 [API CALL] Проверяем статус генерации для ID: \(generationId)")
 
-        apiManager.fetchGenerationStatus(generationId: generationId) { result in
-            DispatchQueue.main.async {
-                print("📥 [API RESPONSE] Получен ответ от сервера")
-                switch result {
-                case .success(let statusResponse):
-                    print("✅ [SUCCESS] Статус генерации: \(statusResponse)")
+      do {
+          // Используем HailuoManager
+          let generations = try await HailuoManager.shared.fetchUserGenerations()
+          print("📥 [HAILUO RESPONSE] Получен ответ от сервера")
 
-                    guard let response = statusResponse as? GenerationStatusResponse else {
-                        print("❌ [ERROR] API вернул неожиданный формат данных")
-                        return
-                    }
+          // Находим самую новую генерацию (по наибольшему `id`)
+          if let lastGeneration = generations.max(by: { $0.id < $1.id }) {
+              print("✅ Найдена самая новая генерация: ID \(lastGeneration.id), статус \(lastGeneration.status)")
 
-                    switch response.status {
-                    case "processing", "queued", "pending":
-                        print("⏳ Генерация еще идет, ждем...")
+              switch lastGeneration.status {
+              case 1, 2:
+                  print("⏳ Генерация еще идет, ждем...")
 
-                    case "finished":
-                        if let videoUrl = response.resultUrl {
-                            timer?.invalidate()
-                            timer = nil
-                            generatedVideoUrl = videoUrl
-                            showResultView = true
-                            isGenerating = false
-                            print("🎉 Видео сгенерировано: \(videoUrl)")
-                        } else {
-                            print("⚠️ Ошибка: статус 'finished', но URL видео отсутствует!")
-                        }
+              case 4:
+                  print("🚨 Ошибка: статус 4 (ошибка генерации)")
+                  timer?.invalidate()
+                  timer = nil
+                  isGenerating = false
+                  DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                      dismiss() // Закрываем `GeneratingView` и возвращаемся на `MainContentView`
+                  }
 
-                    case "error":
-                        timer?.invalidate()
-                        timer = nil
-                        error = response.error ?? "❌ Ошибка генерации. Попробуйте снова."
-                        isGenerating = false
-                        print("🚨 Ошибка: генерация не удалась.")
+              case 3:
+                  if let resultUrl = lastGeneration.result {
+                      timer?.invalidate()
+                      timer = nil
+                      generatedVideoUrl = resultUrl
+                      showResultView = true
+                      isGenerating = false
+                      print("🎉 Видео сгенерировано: \(resultUrl)")
+                  } else {
+                      print("⚠️ Ошибка: статус '3', но URL видео отсутствует!")
+                  }
 
-                    default:
-                        print("❓ Неизвестный статус: \(response.status)")
-                    }
-
-                case .failure(let error):
-                    self.error = error.localizedDescription
-                    print("❌ [API ERROR] Ошибка при проверке статуса генерации: \(error.localizedDescription)")
-                }
-            }
-        }
-    }
+              default:
+                  print("❓ Неизвестный статус: \(lastGeneration.status)")
+              }
+          } else {
+              print("⚠️ Подходящая генерация не найдена в списке")
+          }
+      } catch {
+          self.error = error.localizedDescription
+          print("❌ [API ERROR] Ошибка при проверке статуса генерации: \(error.localizedDescription)")
+      }
+  }
 }
 
 #Preview {

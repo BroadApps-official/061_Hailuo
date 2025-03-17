@@ -34,7 +34,7 @@ class EffectsViewModel: ObservableObject {
     generationError = nil
 
     do {
-      try await hailuoManager.generateVideo(from: imageData, filterId: filterId, model: model, prompt: prompt)
+      try await hailuoManager.generateVideo(from: imageData, filterId: filterId)
       print("✅ Video generation successful")
     } catch {
       generationError = error.localizedDescription

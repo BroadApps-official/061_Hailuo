@@ -72,17 +72,13 @@ struct StartCreatingSection: View {
                 VStack {
                     Image(systemName: "sparkles")
                         .font(.title)
+                        .foregroundColor(.black)
                     Text("Text to video")
-                        .font(.footnote)
+                        .font(Typography.footnoteEmphasized)
+                        .foregroundColor(.black)
                 }
                 .frame(width: 171, height: 70)
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [.purple, .pink]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .background(GradientStyle.background)
                 .cornerRadius(10)
             }
             .foregroundColor(.white)
@@ -96,8 +92,10 @@ struct StartCreatingSection: View {
                 VStack {
                     Image(systemName: "sparkles")
                         .font(.title2)
-                    Text("Image & text to video")
-                        .font(.footnote)
+                        .foregroundColor(ColorPalette.Accent.primary)
+                    Text("Image&text to video")
+                    .font(Typography.footnoteEmphasized)
+                        .foregroundColor(ColorPalette.Accent.primary)
                 }
                 .frame(width: 171, height: 70)
                 .background(Color.gray.opacity(0.2))

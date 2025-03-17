@@ -4,6 +4,9 @@ import AVFoundation
 struct MineView: View {
     @StateObject private var videosManager = GeneratedVideosManager.shared
     @State private var selectedTab = "All videos"
+    @State private var showingDeleteAlert = false
+    @State private var videoToDelete: GeneratedVideo?
+    @State private var selectedVideo: GeneratedVideo?
 
     private let tabs = ["All videos", "My favorites"]
 
@@ -29,51 +32,40 @@ struct MineView: View {
                 }
                 .padding(.horizontal)
 
-              Picker("Tabs", selection: $selectedTab) {
-                  ForEach(tabs, id: \.self) { tab in
-                      let countText: String = {
-                          if tab == "All videos" {
-                              return "(\(videosManager.videos.count))"
-                          } else {
-                              return "(1)" 
-                          }
-                      }()
+                Picker("Tabs", selection: $selectedTab) {
+                    ForEach(tabs, id: \.self) { tab in
+                        let countText: String = {
+                            if tab == "All videos" {
+                                return "(\(videosManager.videos.count))"
+                            } else {
+                                return "(1)" 
+                            }
+                        }()
 
-                      Text("\(tab) \(countText)")
-                          .tag(tab)
-                  }
-              }
-              .pickerStyle(SegmentedPickerStyle())
-              .padding(.horizontal)
-
+                        Text("\(tab) \(countText)")
+                            .tag(tab)
+                    }
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal)
 
                 ScrollView {
                     LazyVStack(spacing: 20) {
                         ForEach(videosManager.videos) { video in
-                            VStack(alignment: .leading, spacing: 8) {
-                                ZStack {
-                                    if video.status == .completed, let url = video.resultUrl {
-                                        VideoCell(video: video)
-                                    } else if video.status == .generating {
-                                        Rectangle()
-                                            .fill(Color.gray.opacity(0.5))
-                                            .frame(height: 180)
-                                            .cornerRadius(12)
-                                            .overlay(ProgressView().foregroundColor(.white))
-                                    } else {
-                                        Rectangle()
-                                            .fill(Color.red.opacity(0.5))
-                                            .frame(height: 180)
-                                            .cornerRadius(12)
+                            VideoCell(video: video)
+                                .onTapGesture {
+                                    if video.status == .completed {
+                                        selectedVideo = video
                                     }
                                 }
-                                .frame(maxWidth: .infinity)
-                                .cornerRadius(12)
-
-                                Text(video.createdAt, formatter: DateFormatter.shortDate)
-                                    .foregroundColor(.gray)
-                                    .font(.footnote)
-                            }
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        videoToDelete = video
+                                        showingDeleteAlert = true
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                         }
                     }
                     .padding()
@@ -82,6 +74,21 @@ struct MineView: View {
                 Spacer()
             }
             .background(Color.black.edgesIgnoringSafeArea(.all))
+            .alert("Delete Video", isPresented: $showingDeleteAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    if let video = videoToDelete {
+                        videosManager.deleteVideo(video)
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to delete this video?")
+            }
+            .fullScreenCover(item: $selectedVideo) { video in
+                if let url = video.resultUrl {
+                    ResultView(videoUrl: url, promptText: video.promptText ?? nil)
+                }
+            }
         }
     }
 }
@@ -97,6 +104,7 @@ extension DateFormatter {
 struct VideoCell: View {
     let video: GeneratedVideo
     @State private var thumbnail: UIImage?
+    @State private var isCheckingStatus = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -148,6 +156,45 @@ struct VideoCell: View {
         .onAppear {
             if video.status == .completed, let url = video.resultUrl {
                 loadThumbnail(from: url)
+            } else if video.status == .generating {
+                checkGenerationStatus()
+            }
+        }
+        .onDisappear {
+            isCheckingStatus = false
+        }
+    }
+    
+    private func checkGenerationStatus() {
+        guard video.status == .generating && !isCheckingStatus else { return }
+        isCheckingStatus = true
+        
+        Task {
+            do {
+                let response = try await APIManager.shared.fetchGenerationStatus(generationId: video.generationId)
+                
+                switch response.status {
+                case "completed", "finished":
+                    if let videoUrl = response.resultUrl {
+                        await GeneratedVideosManager.shared.updateVideoStatus(id: video.id, status: .completed, resultUrl: videoUrl)
+                        loadThumbnail(from: videoUrl)
+                    }
+                case "error":
+                    await GeneratedVideosManager.shared.updateVideoStatus(id: video.id, status: .failed)
+                default:
+                    if video.status == .generating {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                            checkGenerationStatus()
+                        }
+                    }
+                }
+            } catch {
+                print("❌ Ошибка проверки статуса: \(error.localizedDescription)")
+                if video.status == .generating {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                        checkGenerationStatus()
+                    }
+                }
             }
         }
     }
@@ -207,6 +254,7 @@ struct VideoCell: View {
     }
 }
 
+@MainActor
 private func setupPreviewData() {
     let manager = GeneratedVideosManager.shared
     manager.clearVideos()
@@ -247,6 +295,8 @@ private func setupPreviewData() {
 }
 
 #Preview {
-    setupPreviewData()
+    Task {
+        await setupPreviewData()
+    }
     return MineView()
 } 

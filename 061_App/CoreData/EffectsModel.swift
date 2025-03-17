@@ -39,10 +39,20 @@ struct Generation: Decodable {
 }
 
 struct GenerationStatusResponse: Codable {
+    let error: Bool
+    let messages: [String]
+    let data: GenerationStatusData
+}
+
+struct GenerationStatusData: Codable {
     let status: String
     let error: String?
     let resultUrl: String?
+    let progress: Int?
+    let totalWeekGenerations: Int?
+    let maxGenerations: Int?
 }
+
 
 enum APIError: Error {
   case invalidImageData
