@@ -4,7 +4,8 @@ struct TextToVideoView: View {
   @Environment(\.dismiss) private var dismiss
   @State private var text: String = ""
   @State private var showGeneratingView = false
-  
+  @FocusState private var isTextEditorFocused: Bool
+
   var body: some View {
     VStack(spacing: 20) {
       HStack {
@@ -13,13 +14,13 @@ struct TextToVideoView: View {
             .font(.system(size: 18, weight: .medium))
             .foregroundColor(ColorPalette.Accent.primary)
         }
-        
+
         Spacer()
-        
+
         Text("Create")
           .font(.headline)
           .foregroundColor(.white)
-        
+
         Spacer()
       }
       .padding(.horizontal)
@@ -37,7 +38,17 @@ struct TextToVideoView: View {
               .stroke(Color.white.opacity(0.3), lineWidth: 2)
           )
           .padding(.horizontal)
-        
+          .focused($isTextEditorFocused)
+          .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+              Spacer()
+              Button("Done") {
+                isTextEditorFocused = false
+              }
+              .foregroundColor(.blue)
+            }
+          }
+
         if text.isEmpty {
           Text("Enter any query to create your video using AI")
             .foregroundColor(.gray)
@@ -60,7 +71,7 @@ struct TextToVideoView: View {
         }
       }
       .padding(.top, 20)
-      
+
       Spacer()
 
       Button(action: {
@@ -81,9 +92,12 @@ struct TextToVideoView: View {
     .fullScreenCover(isPresented: $showGeneratingView) {
       GeneratingView(text: text)
     }
+    .onTapGesture {
+      hideKeyboard()
+    }
   }
-}
 
-#Preview {
-    TextToVideoView()
+  private func hideKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+  }
 }

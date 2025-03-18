@@ -3,24 +3,24 @@ import StoreKit
 
 struct ReviewRequestView: View {
   @Environment(\.dismiss) var dismiss
-  
+
   @AppStorage("videoGenerationCount") private var videoGenerationCount = 0
   @AppStorage("appLaunchCount") private var appLaunchCount = 0
   @AppStorage("hasRatedApp") private var hasRatedApp = false
-  
-  private let appStoreURL = URL(string: "itms-apps://itunes.apple.com/us/app/flux-ai-avatar/id6742759369?action=write-review")!
-  
+
+  private let appStoreURL = URL(string: "itms-apps://itunes.apple.com/app/id\(6742759369)?action=write-review")!
+
   var body: some View {
     VStack(spacing: 20) {
       HStack {
         Spacer()
-          Button(action: { dismiss() }) {
-              Image(systemName: "xmark")
-                  .resizable()
-                  .scaledToFit()
-                  .frame(width: 22, height: 22)
-                  .foregroundColor(ColorPalette.Accent.primary)
-          }
+        Button(action: { dismiss() }) {
+          Image(systemName: "xmark")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 22, height: 22)
+            .foregroundColor(ColorPalette.Accent.primary)
+        }
       }
       .padding(.trailing, 16)
 
@@ -74,9 +74,9 @@ struct ReviewRequestView: View {
     }
     .background(.black)
   }
-  
+
   private func openAppStoreReview() {
-    hasRatedApp = true 
+    hasRatedApp = true
     if UIApplication.shared.canOpenURL(appStoreURL) {
       UIApplication.shared.open(appStoreURL)
     }

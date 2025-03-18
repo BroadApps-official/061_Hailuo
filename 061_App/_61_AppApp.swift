@@ -11,9 +11,7 @@ struct MyApp: App {
     @AppStorage("hasRatedApp") private var hasRatedApp = false
     @State private var showReviewSheet = false
     @StateObject var networkMonitor = NetworkMonitor.shared
-//    @StateObject var tabManager = TabManager()
-//    @StateObject var projectManager = ProjectManager.shared
-//  @StateObject private var generationManager = AvatarGenerationManager()
+    @StateObject var tabManager = TabManager()
 
     let persistenceController = CoreDataManager.shared
 
@@ -26,10 +24,8 @@ struct MyApp: App {
     var body: some Scene {
         WindowGroup {
           HomeView()
-//                .environmentObject(tabManager)
-//                .environmentObject(projectManager)
+                .environmentObject(tabManager)
                 .environmentObject(networkMonitor)
-//                .environmentObject(generationManager)
                 .environment(\.managedObjectContext, persistenceController.context)
                 .onAppear {
                     appLaunchCount += 1

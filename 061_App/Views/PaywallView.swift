@@ -93,13 +93,13 @@ struct PaywallView: View {
 
                 HStack {
                     Button("Terms of Service") {
-                        openURL("https://docs.google.com/document/d/1GswJfATC1Ce4idZ3BPxQPzbdGOERuLafMsnofj7EnX8/edit?usp=sharing")
+                        openURL("https://docs.google.com/document/d/1_aqT5H9GYmH1IDlyeTLvP0AUuOzHEhRiikDaaLY_G9A/edit?usp=sharing")
                     }
                     Spacer()
                     Button("Restore", action: restorePurchases)
                     Spacer()
                     Button("Privacy Policy") {
-                        openURL("https://docs.google.com/document/d/19JuZ3Pxyz3oPI0yPRrzqFeMDqmtDm2HaBBi42R2sKhE/edit?usp=sharing")
+                        openURL("https://docs.google.com/document/d/11XBfYAuGvIj-tq7o22zMtqbmjH_Wp_ZZKU2ODwqwvDE/edit?usp=sharing")
                     }
                 }
                 .font(.system(size: 14))

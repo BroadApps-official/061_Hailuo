@@ -1,58 +1,57 @@
 import SwiftUI
 
 struct Effect: Identifiable, Codable {
-    let id: Int
-    let title: String
-    let preview: String
-    let previewSmall: String
+  let id: Int
+  let title: String
+  let preview: String
+  let previewSmall: String
 
-    enum CodingKeys: String, CodingKey {
-        case id, title, preview
-        case previewSmall = "preview_small"
-    }
+  enum CodingKeys: String, CodingKey {
+    case id, title, preview
+    case previewSmall = "preview_small"
+  }
 }
 
 struct FilterResponse: Codable {
-    let error: Bool
-    let messages: [String]
-    let data: [Effect]
+  let error: Bool
+  let messages: [String]
+  let data: [Effect]
 }
 
 struct VideoGenerationResponse: Codable {
-    let error: Bool
-    let messages: [String]
-    let data: [String]
+  let error: Bool
+  let messages: [String]
+  let data: [String]
 }
 
 struct GenerationResponse: Decodable {
-    let error: Bool
-    let messages: [String]
-    let data: [Generation]
+  let error: Bool
+  let messages: [String]
+  let data: [Generation]
 }
 
 struct Generation: Decodable {
-    let id: Int
-    let status: Int
-    let prompt: String? 
-    let photo: String?
-    let result: String?
+  let id: Int
+  let status: Int
+  let prompt: String?
+  let photo: String?
+  let result: String?
 }
 
 struct GenerationStatusResponse: Codable {
-    let error: Bool
-    let messages: [String]
-    let data: GenerationStatusData
+  let error: Bool
+  let messages: [String]
+  let data: GenerationStatusData
 }
 
 struct GenerationStatusData: Codable {
-    let status: String
-    let error: String?
-    let resultUrl: String?
-    let progress: Int?
-    let totalWeekGenerations: Int?
-    let maxGenerations: Int?
+  let status: String
+  let error: String?
+  let resultUrl: String?
+  let progress: Int?
+  let totalWeekGenerations: Int?
+  let maxGenerations: Int?
 }
-
 
 enum APIError: Error {
   case invalidImageData

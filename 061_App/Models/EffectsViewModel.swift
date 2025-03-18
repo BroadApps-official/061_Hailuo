@@ -8,14 +8,13 @@ class EffectsViewModel: ObservableObject {
   @Published var isLoading = false
   @Published var isGenerating = false
   @Published var generationError: String?
-
+  
   private let hailuoManager = HailuoManager.shared
-
-  /// 📌 Загружает эффекты из `HailuoManager`
+  
   func fetchEffects() async {
     guard !isLoading else { return }
     isLoading = true
-
+    
     do {
       let effects = try await hailuoManager.fetchEffects()
       self.allEffects = effects
@@ -23,16 +22,15 @@ class EffectsViewModel: ObservableObject {
     } catch {
       print("❌ Failed to fetch effects: \(error.localizedDescription)")
     }
-
+    
     isLoading = false
   }
-
-  /// 📌 Генерирует видео через `HailuoManager`
+  
   func generateVideo(from imageData: Data, filterId: String? = nil, model: String? = nil, prompt: String? = nil) async {
     guard !isGenerating else { return }
     isGenerating = true
     generationError = nil
-
+    
     do {
       try await hailuoManager.generateVideo(from: imageData, filterId: filterId)
       print("✅ Video generation successful")
@@ -40,7 +38,7 @@ class EffectsViewModel: ObservableObject {
       generationError = error.localizedDescription
       print("❌ Video generation failed: \(error.localizedDescription)")
     }
-
+    
     isGenerating = false
   }
 }

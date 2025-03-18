@@ -6,7 +6,7 @@ struct OnboardingView: View {
   @State private var currentPage = 0
   @State private var showAlert = false
   @EnvironmentObject private var viewModel: EffectsViewModel
-
+  
   let totalPages = 5
   
   var body: some View {
@@ -27,7 +27,7 @@ struct OnboardingView: View {
         .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
         .frame(maxWidth: geometry.size.width, maxHeight: geometry.size.height * 0.9)
       }
-
+      
       HStack(spacing: 8) {
         ForEach(0..<totalPages) { i in
           Circle()
@@ -36,7 +36,7 @@ struct OnboardingView: View {
         }
       }
       .padding(.top, -70)
-
+      
       Button(action: {
         if currentPage == 3 {
           requestReview()
@@ -61,13 +61,13 @@ struct OnboardingView: View {
       .padding(.bottom, 30)
       .padding(.top, -50)
       
-
+      
     }
     .background(.black)
     .edgesIgnoringSafeArea(.all)
     .onAppear {
       Task {
-          await viewModel.fetchEffects()
+        await viewModel.fetchEffects()
       }
     }
     .alert("Enable Notifications?", isPresented: $showAlert) {
@@ -89,7 +89,7 @@ struct OnboardingView: View {
       }
     }
   }
-
+  
   private func requestReview() {
     if let windowScene = UIApplication.shared.connectedScenes
       .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
