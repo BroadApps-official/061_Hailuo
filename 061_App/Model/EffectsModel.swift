@@ -5,7 +5,7 @@ struct Effect: Identifiable, Codable {
   let title: String
   let preview: String
   let previewSmall: String
-
+  
   enum CodingKeys: String, CodingKey {
     case id, title, preview
     case previewSmall = "preview_small"
@@ -58,4 +58,20 @@ enum APIError: Error {
   case invalidResponse
   case invalidURL
   case serverError
+}
+
+struct GeneratedVideo: Identifiable, Codable, Hashable {
+  let id: String
+  let generationId: String
+  let videoUrl: String
+  let promptText: String?
+  let createdAt: Date
+  var status: VideoStatus
+  var resultUrl: String?
+  
+  enum VideoStatus: String, Codable {
+    case generating
+    case completed
+    case failed
+  }
 }

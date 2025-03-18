@@ -3,44 +3,70 @@ import AVKit
 
 struct MainContentView: View {
   @StateObject private var viewModel = EffectsViewModel()
-  
+
   var body: some View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 16) {
           HStack {
             Text("Hailuo")
-              .font(.largeTitle.bold())
+              .font(Typography.title1Emphasized)
               .foregroundColor(.white)
-            
+
             Spacer()
             ProBadgeButton()
           }
           .padding(.horizontal, 16)
-          
+
           Text("Let's start creating")
             .font(.headline)
             .foregroundColor(.white)
             .padding(.horizontal, 16)
-          
+
           StartCreatingSection()
             .padding(.horizontal, 16)
-          
+
           if !viewModel.popularEffects.isEmpty {
-            Text("Popular effects")
-              .font(.headline)
-              .foregroundColor(.white)
+              HStack {
+                  Text("Popular effects")
+                      .font(.headline)
+                      .foregroundColor(.white)
+                  Spacer()
+                  NavigationLink(destination: EffectsGridView(title: "Popular effects", effects: viewModel.popularEffects)) {
+                      Text("See All")
+                          .font(.subheadline)
+                          .foregroundColor(ColorPalette.Accent.primary)
+                  }
+              }
               .padding(.horizontal, 16)
-            
-            EffectRow(effects: viewModel.popularEffects)
+
+              ScrollView(.horizontal, showsIndicators: false) {
+                  HStack(spacing: 12) {
+                      ForEach(viewModel.popularEffects, id: \.id) { effect in
+                          NavigationLink(destination: EffectDetailView(selectedEffect: effect, effects: viewModel.popularEffects)) {
+                              EffectCell(effect: effect)
+                          }
+                      }
+                  }
+                  .padding(.horizontal, 16)
+              }
           }
-          
+
+
           if !viewModel.allEffects.isEmpty {
-            Text("All effects")
-              .font(.headline)
-              .foregroundColor(.white)
-              .padding(.horizontal, 16)
-            
+            HStack {
+              Text("All effects")
+                .font(.headline)
+                .foregroundColor(.white)
+              Spacer()
+              NavigationLink(destination: EffectsGridView(title: "All effects", effects: viewModel.allEffects)) {
+                Text("See All")
+                  .font(.subheadline)
+                  .foregroundColor(ColorPalette.Accent.primary)
+              }
+            }
+            .padding(.horizontal, 16)
+
             EffectRow(effects: viewModel.allEffects)
           }
         }
@@ -57,6 +83,7 @@ struct MainContentView: View {
     }
   }
 }
+
 
 struct StartCreatingSection: View {
   @State private var showTextToVideo = false

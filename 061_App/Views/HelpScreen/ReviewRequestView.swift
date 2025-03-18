@@ -8,7 +8,7 @@ struct ReviewRequestView: View {
   @AppStorage("appLaunchCount") private var appLaunchCount = 0
   @AppStorage("hasRatedApp") private var hasRatedApp = false
 
-  private let appStoreURL = URL(string: "itms-apps://itunes.apple.com/app/id\(6742759369)?action=write-review")!
+  private let appStoreURL = URL(string: "itms-apps://itunes.apple.com/app/id\(6743318475)?action=write-review")!
 
   var body: some View {
     VStack(spacing: 20) {

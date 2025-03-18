@@ -32,5 +32,17 @@ class NotificationManager: ObservableObject {
       self.isNotificationsEnabled = false
     }
   }
+  
+  func sendVideoReadyNotification() {
+    let content = UNMutableNotificationContent()
+    content.title = "Your video is ready! 🎉"
+    content.body = "Check out your newly generated video in the Mine tab"
+    content.sound = .default
+    
+    let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+    let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+    
+    UNUserNotificationCenter.current().add(request)
+  }
 }
 

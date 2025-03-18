@@ -1,21 +1,5 @@
 import Foundation
 
-struct GeneratedVideo: Identifiable, Codable, Hashable {
-  let id: String
-  let generationId: String
-  let videoUrl: String
-  let promptText: String?
-  let createdAt: Date
-  var status: VideoStatus
-  var resultUrl: String?
-  
-  enum VideoStatus: String, Codable {
-    case generating
-    case completed
-    case failed
-  }
-}
-
 @MainActor
 class GeneratedVideosManager: ObservableObject {
   static let shared = GeneratedVideosManager()

@@ -268,6 +268,9 @@
 				DEVELOPMENT_TEAM = FVUCM87L3U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "-61-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Genesis Maker";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Add a photo so we can do a cool effect with it";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Add a photo so we can do a cool effect with it";
 				INFOPLIST_KEY_NSUserTrackingUsageDescription = "We use the data to provide more personalized advertising and improve your user experience.";
@@ -306,6 +309,9 @@
 				DEVELOPMENT_TEAM = FVUCM87L3U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "-61-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Genesis Maker";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Add a photo so we can do a cool effect with it";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Add a photo so we can do a cool effect with it";
 				INFOPLIST_KEY_NSUserTrackingUsageDescription = "We use the data to provide more personalized advertising and improve your user experience.";

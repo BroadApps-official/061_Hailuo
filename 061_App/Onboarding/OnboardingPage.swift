@@ -12,7 +12,6 @@ struct OnboardingPage: View {
         Image(imageName)
           .resizable()
           .scaledToFit()
-          .frame(width: .infinity, height: .infinity)
         Spacer()
       }
       .overlay(

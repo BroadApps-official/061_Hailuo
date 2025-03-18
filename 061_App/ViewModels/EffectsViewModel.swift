@@ -18,7 +18,7 @@ class EffectsViewModel: ObservableObject {
     do {
       let effects = try await hailuoManager.fetchEffects()
       self.allEffects = effects
-      self.popularEffects = Array(effects.prefix(2))
+      self.popularEffects = Array(effects.shuffled().prefix(4))
     } catch {
       print("❌ Failed to fetch effects: \(error.localizedDescription)")
     }

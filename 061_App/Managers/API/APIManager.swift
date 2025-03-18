@@ -15,7 +15,6 @@ final class APIManager: ObservableObject {
       return existingId
     } else {
       let newUserId = Apphud.userID()
-      print("📱 Создаем новый userId: \(newUserId)")
       storedUserId = newUserId
       return newUserId
     }
@@ -228,9 +227,10 @@ final class APIManager: ObservableObject {
           case "completed", "finished":
             if let videoUrl = response.resultUrl {
               timer.invalidate()
-              if let video = GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId }) {
-                GeneratedVideosManager.shared.updateVideoStatus(id: video.id, status: .completed, resultUrl: videoUrl)
+              if let video = await GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId }) {
+                await GeneratedVideosManager.shared.updateVideoStatus(id: video.id, status: .completed, resultUrl: videoUrl)
                 print("🎉 Video done: \(videoUrl)")
+                NotificationManager.shared.sendVideoReadyNotification()
               }
             } else {
               print("⚠️ Error, no video URL")
@@ -238,8 +238,8 @@ final class APIManager: ObservableObject {
 
           case "error":
             timer.invalidate()
-            if let video = GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId }) {
-              GeneratedVideosManager.shared.updateVideoStatus(id: video.id, status: .failed)
+            if let video = await GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId }) {
+              await GeneratedVideosManager.shared.updateVideoStatus(id: video.id, status: .failed)
             }
 
           default:

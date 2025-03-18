@@ -56,10 +56,10 @@ struct PaywallView: View {
                     .background(.black)
                     .edgesIgnoringSafeArea(.all)
 
-                Text("Create creative videos")
-                .font(Typography.title1Emphasized)
-                    .foregroundColor(.white)
-                    .padding(.top, -200)
+              Text("Create creative videos")
+                .font(.system(size: 28, weight: .bold))
+                  .foregroundColor(.white)
+                  .padding(.top, UIScreen.main.bounds.height * -0.24)
 
                 VStack(alignment: .leading, spacing: 10) {
                     SubscriptionFeature(text: "Access to all effects")
@@ -67,14 +67,20 @@ struct PaywallView: View {
                     SubscriptionFeature(text: "Access to all functions")
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, -170)
+                .padding(.top, UIScreen.main.bounds.height * -0.2)
 
-                VStack(spacing: 12) {
-                    ForEach(subscriptionManager.productsApphud, id: \.productId) { product in
-                        SubscriptionOptionView(product: product, selectedPlan: $selectedPlan)
-                    }
-                }
-                .frame(width: .infinity)
+              VStack(spacing: 12) {
+                  ForEach(subscriptionManager.productsApphud.sorted(by: { lhs, rhs in
+                      (lhs.skProduct?.subscriptionPeriod?.unit == .year && rhs.skProduct?.subscriptionPeriod?.unit == .week)
+                  }), id: \.productId) { product in
+                      SubscriptionOptionView(product: product, selectedPlan: $selectedPlan)
+                  }
+              }
+              .onReceive(subscriptionManager.$productsApphud) { products in
+                  if selectedPlan == nil, let weeklyProduct = products.first(where: { $0.skProduct?.subscriptionPeriod?.unit == .week }) {
+                      selectedPlan = weeklyProduct
+                  }
+              }
                 .padding(.horizontal, 16)
                 .padding(.top, -40)
 
@@ -87,25 +93,29 @@ struct PaywallView: View {
                         .foregroundColor(.black)
                         .cornerRadius(8)
                 }
-                .frame(width: .infinity)
                 .padding(.horizontal, 16)
                 .disabled(isPurchasing || selectedPlan == nil)
+                .padding(.top, 10)
 
                 HStack {
-                    Button("Terms of Service") {
-                        openURL("https://docs.google.com/document/d/1_aqT5H9GYmH1IDlyeTLvP0AUuOzHEhRiikDaaLY_G9A/edit?usp=sharing")
-                    }
+                  Button("Privacy Policy") {
+                      openURL("https://docs.google.com/document/d/11XBfYAuGvIj-tq7o22zMtqbmjH_Wp_ZZKU2ODwqwvDE/edit?usp=sharing")
+                  }
                     Spacer()
-                    Button("Restore", action: restorePurchases)
+                    Button("Restore Purhases", action: restorePurchases)
                     Spacer()
-                    Button("Privacy Policy") {
-                        openURL("https://docs.google.com/document/d/11XBfYAuGvIj-tq7o22zMtqbmjH_Wp_ZZKU2ODwqwvDE/edit?usp=sharing")
-                    }
+                  Button("Terms of Use") {
+                      openURL("https://docs.google.com/document/d/1_aqT5H9GYmH1IDlyeTLvP0AUuOzHEhRiikDaaLY_G9A/edit?usp=sharing")
+                  }
+
                 }
                 .font(.system(size: 14))
                 .foregroundColor(.gray)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)
+                .task {
+                  await subscriptionManager.loadPaywalls()
+                }
             }
         }
     }
@@ -137,7 +147,10 @@ struct SubscriptionFeature: View {
     let text: String
     var body: some View {
         HStack {
-            Image("sparkles")
+          Image("sparkles")
+              .renderingMode(.template)
+              .foregroundColor(ColorPalette.Accent.primary)
+
             Text(text)
                 .font(.system(size: 16))
                 .foregroundColor(.white)
@@ -148,39 +161,77 @@ struct SubscriptionFeature: View {
 struct SubscriptionOptionView: View {
     let product: ApphudProduct
     @Binding var selectedPlan: ApphudProduct?
+    @ObservedObject var subscriptionManager = SubscriptionManager.shared
+
+    private var isSelected: Bool {
+        selectedPlan == product
+    }
+
+    private var isYearlySubscription: Bool {
+        product.skProduct?.subscriptionPeriod?.unit == .year
+    }
 
     var body: some View {
         Button(action: { selectedPlan = product }) {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading) {
-                    Text(product.skProduct?.localizedTitle ?? "Unknown Plan")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
-                    Text("$\(product.skProduct?.price.stringValue ?? "0.00") per week")
-                        .font(.system(size: 14))
-                        .foregroundColor(.gray)
+            ZStack(alignment: .topTrailing) {
+                HStack(spacing: 12) {
+                    Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                        .font(.system(size: 20))
+                        .foregroundColor(isSelected ? ColorPalette.Accent.primary : .gray)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Just \(subscriptionManager.getProductPrice(for: product.productId)) / \(isYearlySubscription ? "Year" : "Week")")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white)
+
+                        Text("Auto renewable. Cancel anytime.")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                    }
+                    Spacer()
                 }
-                Spacer()
-                if selectedPlan == product {
+                .padding()
+                .background(
+                    ZStack {
+                        if isSelected {
+                            GradientStyle.background.opacity(0.2)
+                        } else {
+                            Color.white.opacity(0.05)
+                        }
+                    }
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isSelected ? ColorPalette.Accent.primary : Color.white.opacity(0.2), lineWidth: 1)
+                )
+                .cornerRadius(12)
+
+                if isYearlySubscription {
                     Text("SAVE 40%")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.blue)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.blue.opacity(0.2)))
+                        .background(Color.white.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
-                Text("$\(product.skProduct?.price.stringValue ?? "0.00")")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.white)
             }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(selectedPlan == product ? Color.purple : Color.gray.opacity(0.4), lineWidth: 2)
-            )
         }
+        .buttonStyle(PlainButtonStyle())
     }
 }
+
+enum SubscriptionPlan: String, CaseIterable {
+  case yearly, weekly
+
+  var productId: String {
+    switch self {
+    case .yearly: return "yearly_59.99_nottrial"
+    case .weekly: return "week_7.99_nottrial"
+    }
+  }
+}
+
 
 #Preview {
     PaywallView()

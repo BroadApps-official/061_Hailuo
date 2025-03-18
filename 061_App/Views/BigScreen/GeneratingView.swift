@@ -6,6 +6,7 @@ struct GeneratingView: View {
   let effectId: String?
 
   @StateObject private var apiManager = APIManager.shared
+  @EnvironmentObject private var effectsViewModel: EffectsViewModel
   @Environment(\.dismiss) private var dismiss
   @EnvironmentObject private var tabManager: TabManager
   @State private var timer: Timer?
@@ -57,7 +58,7 @@ struct GeneratingView: View {
         Text(error)
       }
     }
-    .alert("Ошибка", isPresented: $showErrorAlert) {
+    .alert("Error", isPresented: $showErrorAlert) {
       Button("OK") {
         dismiss()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -96,30 +97,46 @@ struct GeneratingView: View {
         let response = try await HailuoManager.shared.generateVideo(from: imageData, filterId: effectId)
         if response.error {
           error = response.messages.first ?? "Unknown error occurred"
-        } else {
+          return
+        }
+
+        var lastGeneration: Generation?
+        var attempts = 0
+        let maxAttempts = 5
+        
+        while attempts < maxAttempts {
           let generations = try await HailuoManager.shared.fetchUserGenerations()
-          if let lastGeneration = generations.last(where: { $0.status == 1 || $0.status == 2 }) {
-            print("✅ Last generation: ID \(lastGeneration.id), status \(lastGeneration.status)")
-            lastGenerationId = String(lastGeneration.id)
-            
-            DispatchQueue.main.async {
-              GeneratedVideosManager.shared.addVideo(
-                GeneratedVideo(
-                  id: UUID().uuidString,
-                  generationId: String(lastGeneration.id),
-                  videoUrl: "",
-                  promptText: text,
-                  createdAt: Date(),
-                  status: .generating,
-                  resultUrl: nil
-                )
-              )
-            }
-            
-            await startCheckingStatus()
-          } else {
-            error = "Can't find active generation"
+          lastGeneration = generations.last(where: { $0.status == 1 || $0.status == 2 })
+          
+          if lastGeneration != nil {
+            print("✅ Found active generation: ID \(lastGeneration!.id), status \(lastGeneration!.status)")
+            break
           }
+          
+          print("⏳ Waiting for active generation... Attempt \(attempts + 1)")
+          try await Task.sleep(nanoseconds: 2_000_000_000)
+          attempts += 1
+        }
+        
+        if let lastGeneration = lastGeneration {
+          lastGenerationId = String(lastGeneration.id)
+          DispatchQueue.main.async {
+            GeneratedVideosManager.shared.addVideo(
+              GeneratedVideo(
+                id: UUID().uuidString,
+                generationId: String(lastGeneration.id),
+                videoUrl: "",
+                promptText: text,
+                createdAt: Date(),
+                status: .generating,
+                resultUrl: nil
+              )
+            )
+          }
+
+          await startCheckingStatus()
+        } else {
+          error = "Failed to start generation after \(maxAttempts) attempts"
         }
       } else if let text = text, let imageData = imageData, let imageUrl = saveImageToTempDirectory(imageData) {
         apiManager.generatePikaScenes(imageUrls: [imageUrl], promptText: text) { result in
@@ -191,117 +208,91 @@ struct GeneratingView: View {
     do {
       if effectId != nil {
         let generations = try await HailuoManager.shared.fetchUserGenerations()
-        if let currentGeneration = generations.first(where: { $0.id == Int(generationId) }) {
-          print("✅ Найдена генерация: ID \(currentGeneration.id), статус \(currentGeneration.status)")
 
-          switch currentGeneration.status {
-          case 1, 2:
-            print("⏳ Генерация в очереди или обрабатывается...")
-
+        if let generation = generations.first(where: { $0.id == Int(generationId) }) {
+          print("📱 Checking generation: \(generation.id) with status: \(generation.status)")
+          
+          switch generation.status {
           case 3:
-            if let resultUrl = currentGeneration.result {
+            if let videoUrl = generation.result {
               timer?.invalidate()
-              timer = nil
-              generatedVideoUrl = resultUrl
-              showResultView = true
-              isGenerating = false
-              print("🎉 Видео сгенерировано: \(resultUrl)")
-              DispatchQueue.main.async {
-                if let videoToUpdate = GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId }) {
-                  GeneratedVideosManager.shared.updateVideo(
-                    GeneratedVideo(
-                      id: videoToUpdate.id,
-                      generationId: generationId,
-                      videoUrl: resultUrl,
-                      promptText: text ?? nil,
-                      createdAt: videoToUpdate.createdAt,
-                      status: .completed,
-                      resultUrl: resultUrl
-                    )
+              if let video = GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId }) {
+                GeneratedVideosManager.shared.updateVideo(
+                  GeneratedVideo(
+                    id: video.id,
+                    generationId: generationId,
+                    videoUrl: videoUrl,
+                    promptText: video.promptText,
+                    createdAt: video.createdAt,
+                    status: .completed,
+                    resultUrl: videoUrl
                   )
-                }
+                )
+                print("🎉 Video done: \(videoUrl)")
+                NotificationManager.shared.sendVideoReadyNotification()
+                dismiss()
+                tabManager.selectedTab = 1
               }
-            } else {
-              print("⚠️ Ошибка: статус успеха (3), но URL видео отсутствует!")
             }
-
-          case 4:
-            print("❌ Генерация завершилась с ошибкой")
+          case 4: 
             timer?.invalidate()
-            timer = nil
-            isGenerating = false
-            
-            if let lastGeneration = lastGenerationId {
-              DispatchQueue.main.async {
-                if let videoToDelete = GeneratedVideosManager.shared.videos.first(where: { $0.generationId == lastGeneration && $0.status == .generating }) {
-                  GeneratedVideosManager.shared.deleteVideo(videoToDelete)
-                }
-              }
+            if let video = GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId }) {
+              GeneratedVideosManager.shared.deleteVideo(video)
             }
-            
             showErrorAlert = true
-
+            dismiss()
+            tabManager.selectedTab = 1
+          case 1, 2:
+            print("⏳ Generation in progress...")
           default:
-            print("❓ Неизвестный статус: \(currentGeneration.status)")
+            print("❓ Unknown status: \(generation.status)")
           }
         } else {
-          print("⚠️ Генерация с ID \(generationId) не найдена в списке")
+          print("⚠️ Generation not found in list")
         }
       } else {
         let statusResponse = try await APIManager.shared.fetchGenerationStatus(generationId: generationId)
         switch statusResponse.status {
         case "processing", "queued", "pending":
           print("⏳ Generating...")
-
+          
         case "completed", "finished":
           if let resultUrl = statusResponse.resultUrl {
             timer?.invalidate()
-            timer = nil
-            generatedVideoUrl = resultUrl
-            showResultView = true
-            isGenerating = false
-            print("🎉 Video: \(resultUrl)")
-            DispatchQueue.main.async {
-              GeneratedVideosManager.shared.addVideo(
+            if let video = GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId }) {
+              GeneratedVideosManager.shared.updateVideo(
                 GeneratedVideo(
-                  id: UUID().uuidString,
+                  id: video.id,
                   generationId: generationId,
                   videoUrl: resultUrl,
-                  promptText: text ?? nil,
-                  createdAt: Date(),
+                  promptText: video.promptText,
+                  createdAt: video.createdAt,
                   status: .completed,
                   resultUrl: resultUrl
                 )
               )
+              print("🎉 Video done: \(resultUrl)")
+              NotificationManager.shared.sendVideoReadyNotification()
+              dismiss()
+              tabManager.selectedTab = 1
             }
-          } else {
-            print("⚠️ Error: status completed, but URL nil!")
           }
-
+          
         case "error":
           timer?.invalidate()
-          timer = nil
-          isGenerating = false
-
-          if let lastGeneration = lastGenerationId {
-            DispatchQueue.main.async {
-              if let videoToDelete = GeneratedVideosManager.shared.videos.first(where: { $0.generationId == lastGeneration && $0.status == .generating }) {
-                GeneratedVideosManager.shared.deleteVideo(videoToDelete)
-              }
-            }
+          if let video = GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId }) {
+            GeneratedVideosManager.shared.deleteVideo(video)
           }
-
           showErrorAlert = true
+          dismiss()
+          tabManager.selectedTab = 1
 
         default:
           print("❓ Unknown status: \(statusResponse.status)")
         }
       }
     } catch {
-      print("❌ Error checking status: \(error.localizedDescription)")
-      timer?.invalidate()
-      timer = nil
-      isGenerating = false
+      print("❌ Error checking generation status: \(error)")
     }
   }
 }

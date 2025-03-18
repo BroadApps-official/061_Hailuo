@@ -148,6 +148,12 @@ final class HailuoManager: ObservableObject {
 
     DispatchQueue.main.async {
       self.userGenerations = decodedResponse.data
+      for generation in decodedResponse.data {
+        if generation.status == 3 && generation.result != nil {
+          NotificationManager.shared.sendVideoReadyNotification()
+          break
+        }
+      }
     }
 
     return decodedResponse.data

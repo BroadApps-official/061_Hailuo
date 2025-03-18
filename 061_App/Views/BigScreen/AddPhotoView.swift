@@ -10,6 +10,7 @@ struct AddPhotoView: View {
   @State private var showPermissionAlert = false
   @State private var permissionType: PermissionType = .camera
   @State private var showGeneratingView = false
+  @StateObject private var effectsViewModel = EffectsViewModel()
   
   let effectId: String
   
@@ -134,6 +135,7 @@ struct AddPhotoView: View {
     .fullScreenCover(isPresented: $showGeneratingView) {
       if let imageData = selectedImageData {
         GeneratingView(imageData: imageData, effectId: effectId)
+          .environmentObject(effectsViewModel)
       }
     }
   }

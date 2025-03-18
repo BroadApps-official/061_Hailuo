@@ -1,14 +1,13 @@
 import SwiftUI
-import AVKit
 
 class TabManager: ObservableObject {
   @Published var selectedTab: Int = 0
 }
 
-struct HomeView: View {
+struct CustomTabBarView: View {
   @StateObject var tabManager = TabManager()
   @StateObject private var effectsViewModel = EffectsViewModel()
-  
+
   var body: some View {
     TabView(selection: $tabManager.selectedTab) {
       MainContentView()
@@ -20,7 +19,7 @@ struct HomeView: View {
           }
         }
         .tag(0)
-      
+
       MineView()
         .environmentObject(tabManager)
         .tabItem {
@@ -29,7 +28,7 @@ struct HomeView: View {
           }
         }
         .tag(1)
-      
+
       SettingsView()
         .environmentObject(tabManager)
         .tabItem {
@@ -46,7 +45,7 @@ struct HomeView: View {
       appearance.backgroundColor = .black
       appearance.shadowColor = UIColor(white: 0.2, alpha: 1.0)
       appearance.shadowImage = UIImage()
-      
+
       UITabBar.appearance().standardAppearance = appearance
       UITabBar.appearance().scrollEdgeAppearance = appearance
     }

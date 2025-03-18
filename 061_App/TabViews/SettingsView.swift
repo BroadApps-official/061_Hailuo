@@ -17,12 +17,12 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 8) {
           HStack {
             Text("Settings")
-              .font(Typography.title2Emphasized)
+              .font(Typography.title1Emphasized)
               .foregroundColor(.white)
               .opacity(isScrolled ? 0 : 1)
             Spacer()
             ProBadgeButton()
-              .scaleEffect(isScrolled ? 0.8 : 1.0)
+              .scaleEffect(isScrolled ? 0.7 : 1.0)
           }
           .padding(.bottom, 16)
           
@@ -73,7 +73,7 @@ struct SettingsView: View {
       .onAppear {
         calculateCacheSize()
       }
-      .sheet(isPresented: $showPaywall) {
+      .fullScreenCover(isPresented: $showPaywall) {
         PaywallView()
       }
       .alert("Clear Cache", isPresented: $showClearCacheAlert) {
@@ -96,14 +96,14 @@ struct SettingsView: View {
       }
     } else {
       let appID = "ID"
-      if let url = URL(string: "itms-apps://itunes.apple.com/app/id\(6742759369)?action=write-review") {
+      if let url = URL(string: "itms-apps://itunes.apple.com/app/id\(6743318475)?action=write-review") {
         UIApplication.shared.open(url, options: [:], completionHandler: nil)
       }
     }
   }
   
   private func shareApp() {
-    let appURL = "https://apps.apple.com/app/id6742759369"
+    let appURL = "https://apps.apple.com/app/id6743318475"
     let shareText = "Check out this app!\n\(appURL)"
     let activityVC = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
     UIApplication.shared.windows.first?.rootViewController?.present(activityVC, animated: true)
@@ -349,7 +349,7 @@ struct ProBadgeButton: View {
         .cornerRadius(16)
       }
     }
-    .sheet(isPresented: $showPaywall) {
+    .fullScreenCover(isPresented: $showPaywall) {
       PaywallView()
     }
   }

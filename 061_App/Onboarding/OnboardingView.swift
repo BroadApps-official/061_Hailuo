@@ -5,7 +5,7 @@ struct OnboardingView: View {
   @Binding var hasSeenOnboarding: Bool
   @State private var currentPage = 0
   @State private var showAlert = false
-  @EnvironmentObject private var viewModel: EffectsViewModel
+  @StateObject private var viewModel = EffectsViewModel()
   
   let totalPages = 5
   

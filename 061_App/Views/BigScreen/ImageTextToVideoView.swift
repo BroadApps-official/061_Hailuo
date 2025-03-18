@@ -8,6 +8,7 @@ struct ImageTextToVideoView: View {
   @State private var text: String = ""
   @State private var showGeneratingView = false
   @FocusState private var isTextFieldFocused: Bool 
+  @StateObject private var effectsViewModel = EffectsViewModel()
   
   var isButtonEnabled: Bool {
     return selectedImage != nil && !text.isEmpty
@@ -72,7 +73,7 @@ struct ImageTextToVideoView: View {
       }
       
       ZStack(alignment: .topLeading) {
-        TextEditor(text: $text)
+        DoneTextEditor(text: $text)
           .frame(height: !text.isEmpty ? 250 : 150)
           .padding(10)
           .foregroundColor(.white)
@@ -133,6 +134,7 @@ struct ImageTextToVideoView: View {
     .background(Color.black.edgesIgnoringSafeArea(.all))
     .fullScreenCover(isPresented: $showGeneratingView) {
       GeneratingView(imageData: selectedImage?.pngData(), text: text)
+        .environmentObject(effectsViewModel)
     }
     .onTapGesture {
       hideKeyboard()

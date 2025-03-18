@@ -5,6 +5,7 @@ struct TextToVideoView: View {
   @State private var text: String = ""
   @State private var showGeneratingView = false
   @FocusState private var isTextEditorFocused: Bool
+  @StateObject private var effectsViewModel = EffectsViewModel()
 
   var body: some View {
     VStack(spacing: 20) {
@@ -26,50 +27,37 @@ struct TextToVideoView: View {
       .padding(.horizontal)
 
       ZStack(alignment: .topLeading) {
-        TextEditor(text: $text)
-          .frame(height: UIScreen.main.bounds.height / 2)
-          .padding(10)
-          .foregroundColor(.white)
-          .scrollContentBackground(.hidden)
-          .background(Color.black)
-          .cornerRadius(12)
-          .overlay(
-            RoundedRectangle(cornerRadius: 12)
-              .stroke(Color.white.opacity(0.3), lineWidth: 2)
-          )
-          .padding(.horizontal)
-          .focused($isTextEditorFocused)
-          .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-              Spacer()
-              Button("Done") {
-                isTextEditorFocused = false
-              }
-              .foregroundColor(.blue)
-            }
-          }
-
-        if text.isEmpty {
-          Text("Enter any query to create your video using AI")
-            .foregroundColor(.gray)
-            .padding(.leading, 30)
-            .padding(.top, 18)
-            .allowsHitTesting(false)
-        }
-
-        if !text.isEmpty {
-          Button(action: {
-            text = ""
-          }) {
-            Image(systemName: "trash")
-              .foregroundColor(.white.opacity(0.7))
+          DoneTextEditor(text: $text)
+              .frame(height: UIScreen.main.bounds.height / 2)
               .padding(10)
-              .background(Color.gray.opacity(0.6))
-              .clipShape(Circle())
+              .background(Color.black)
+              .cornerRadius(12)
+              .overlay(
+                  RoundedRectangle(cornerRadius: 12)
+                      .stroke(Color.white.opacity(0.3), lineWidth: 2)
+              )
+              .padding(.horizontal)
+
+          if text.isEmpty {
+              Text("Enter any query to create your video using AI")
+                  .foregroundColor(.gray)
+                  .padding(.leading, 30)
+                  .padding(.top, 18)
+                  .allowsHitTesting(false)
           }
-          .offset(x: UIScreen.main.bounds.width - 70, y: UIScreen.main.bounds.height / 2 - 35)
-        }
+
+          if !text.isEmpty {
+              Button(action: { text = "" }) {
+                  Image(systemName: "trash")
+                      .foregroundColor(.white.opacity(0.7))
+                      .padding(10)
+                      .background(Color.gray.opacity(0.6))
+                      .clipShape(Circle())
+              }
+              .offset(x: UIScreen.main.bounds.width - 70, y: UIScreen.main.bounds.height / 2 - 35)
+          }
       }
+
       .padding(.top, 20)
 
       Spacer()
@@ -91,6 +79,7 @@ struct TextToVideoView: View {
     .background(Color.black.edgesIgnoringSafeArea(.all))
     .fullScreenCover(isPresented: $showGeneratingView) {
       GeneratingView(text: text)
+        .environmentObject(effectsViewModel)
     }
     .onTapGesture {
       hideKeyboard()
