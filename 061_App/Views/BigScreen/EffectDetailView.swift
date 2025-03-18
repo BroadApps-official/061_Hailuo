@@ -7,6 +7,7 @@ struct EffectDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @State private var isVideoLoaded = false
   @State private var showAddPhotoSheet = false
+  @EnvironmentObject private var networkMonitor: NetworkMonitor
   
   var body: some View {
     VStack {
@@ -33,12 +34,13 @@ struct EffectDetailView: View {
           .cornerRadius(10)
           .padding(.horizontal, 20)
       }
+      .disabled(!networkMonitor.isConnected)
+      .opacity(networkMonitor.isConnected ? 1 : 0.5)
       .padding(.top, 20)
       .padding(.bottom, 30)
       .sheet(isPresented: $showAddPhotoSheet) {
-        AddPhotoView(effectId: selectedEffect.id.description) 
+        AddPhotoView(effectId: selectedEffect.id.description)
       }
-      
     }
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {

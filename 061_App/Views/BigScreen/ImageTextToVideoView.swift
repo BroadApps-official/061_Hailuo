@@ -9,7 +9,8 @@ struct ImageTextToVideoView: View {
   @State private var showGeneratingView = false
   @FocusState private var isTextFieldFocused: Bool 
   @StateObject private var effectsViewModel = EffectsViewModel()
-  
+  @EnvironmentObject private var networkMonitor: NetworkMonitor
+
   var isButtonEnabled: Bool {
     return selectedImage != nil && !text.isEmpty
   }
@@ -119,17 +120,19 @@ struct ImageTextToVideoView: View {
       
       Spacer()
       
-      Button(action: { showGeneratingView = true }) {
+      Button(action: {
+        showGeneratingView = true
+      }) {
         Text("Create")
           .font(.headline)
-          .foregroundColor(isButtonEnabled ? .black : .gray)
+          .foregroundColor(text.isEmpty || !networkMonitor.isConnected ? ColorPalette.Label.quintuple : .black)
           .frame(maxWidth: .infinity)
           .padding()
-          .background(isButtonEnabled ? GradientStyle.background : GradientStyle.gray)
+          .background(text.isEmpty || !networkMonitor.isConnected ? GradientStyle.gray : GradientStyle.background)
           .cornerRadius(12)
       }
+      .disabled(text.isEmpty || !networkMonitor.isConnected)
       .padding(.horizontal)
-      .disabled(!isButtonEnabled)
     }
     .background(Color.black.edgesIgnoringSafeArea(.all))
     .fullScreenCover(isPresented: $showGeneratingView) {

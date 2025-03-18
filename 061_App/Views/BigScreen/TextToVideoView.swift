@@ -6,6 +6,7 @@ struct TextToVideoView: View {
   @State private var showGeneratingView = false
   @FocusState private var isTextEditorFocused: Bool
   @StateObject private var effectsViewModel = EffectsViewModel()
+  @EnvironmentObject private var networkMonitor: NetworkMonitor
 
   var body: some View {
     VStack(spacing: 20) {
@@ -67,14 +68,14 @@ struct TextToVideoView: View {
       }) {
         Text("Create")
           .font(.headline)
-          .foregroundColor(text.isEmpty ? ColorPalette.Label.quintuple : .black)
+          .foregroundColor(text.isEmpty || !networkMonitor.isConnected ? ColorPalette.Label.quintuple : .black)
           .frame(maxWidth: .infinity)
           .padding()
-          .background(text.isEmpty ? GradientStyle.gray : GradientStyle.background)
+          .background(text.isEmpty || !networkMonitor.isConnected ? GradientStyle.gray : GradientStyle.background)
           .cornerRadius(12)
       }
+      .disabled(text.isEmpty || !networkMonitor.isConnected)
       .padding(.horizontal)
-      .disabled(text.isEmpty)
     }
     .background(Color.black.edgesIgnoringSafeArea(.all))
     .fullScreenCover(isPresented: $showGeneratingView) {
