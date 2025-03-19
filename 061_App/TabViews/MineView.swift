@@ -7,6 +7,7 @@ struct MineView: View {
   @State private var showingDeleteAlert = false
   @State private var videoToDelete: GeneratedVideo?
   @State private var selectedVideo: GeneratedVideo?
+  @State private var isLoading = true
   
   private let tabs = ["All videos", "My favorites"]
   
@@ -25,7 +26,18 @@ struct MineView: View {
       .padding(.vertical)
       
       let filteredVideos = selectedTab == "All videos" ? videosManager.videos : videosManager.favoriteVideos
-      if filteredVideos.isEmpty {
+      
+      if isLoading {
+        ProgressView()
+          .progressViewStyle(CircularProgressViewStyle(tint: .white))
+          .scaleEffect(1.5)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+          .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+              isLoading = false
+            }
+          }
+      } else if !videosManager.videos.contains(where: { $0.status == .generating }) && videosManager.videos.isEmpty {
         EmptyStateView()
       } else {
         HStack(spacing: 8) {

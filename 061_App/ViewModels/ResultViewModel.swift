@@ -175,4 +175,13 @@ class ResultViewModel: ObservableObject {
       }
     }.resume()
   }
+  
+  func clearAlerts() {
+    showSuccessAlert = false
+    showErrorAlert = false
+    showFilesSuccessAlert = false
+    showFilesErrorAlert = false
+    showDeleteAlert = false
+    showAlert = false
+  }
 }

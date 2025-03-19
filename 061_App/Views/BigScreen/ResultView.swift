@@ -139,14 +139,13 @@ struct ResultView: View {
         .cornerRadius(12)
     }
     .padding(.horizontal)
-    .padding(.bottom, 20)
+    .padding(.bottom, 40)
   }
 
   var body: some View {
     VStack(spacing: 20) {
       HStack {
         backButton
-
         Spacer()
 
         Text("Result")
@@ -157,17 +156,20 @@ struct ResultView: View {
 
         menuButton
       }
-      .padding(.top, 8)
+      .padding(.top, 20)
       videoPreview
       promptView
       saveButton
     }
     .background(Color.black.edgesIgnoringSafeArea(.all))
+    .navigationBarBackButtonHidden(true)
     .onAppear {
       viewModel.setupPlayer()
+      NotificationManager.shared.sendVideoReadyNotification()
     }
     .onDisappear {
       viewModel.cleanupPlayer()
+      tabManager.selectedTab = 1
     }
     .alert("Video saved to gallery", isPresented: $viewModel.showSuccessAlert) {
       Button("OK", role: .cancel) {}
@@ -181,13 +183,20 @@ struct ResultView: View {
       Text("Something went wrong or the server is not responding. Try again or do it later.")
     }
     .alert("Video saved to Files", isPresented: $viewModel.showFilesSuccessAlert) {
-      Button("OK", role: .cancel) {}
+        Button("OK", role: .cancel) {
+            DispatchQueue.main.async {
+                viewModel.clearAlerts()
+            }
+        }
     }
-    .alert("Error, video not saved to Files", isPresented: $viewModel.showFilesErrorAlert) {
-      Button("Cancel", role: .cancel) {}
-      Button("Try Again") {
-        saveToFiles()
-      }
+    .alert("Video saved to Files", isPresented: $viewModel.showFilesSuccessAlert) {
+        Button("OK") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                viewModel.showFilesSuccessAlert = false
+                self.shareWindow?.isHidden = true
+                self.shareWindow = nil
+            }
+        }
     }
     .alert("Delete Video", isPresented: $viewModel.showDeleteAlert) {
       Button("Cancel", role: .cancel) {}
@@ -247,13 +256,11 @@ struct ResultView: View {
       docPicker.modalPresentationStyle = .formSheet
 
       DocumentPickerHandler.shared.onDocumentPicked = { savedURL in
-        DispatchQueue.main.async {
-          self.viewModel.showFilesSuccessAlert = true
-        }
-      }
-
-      DocumentPickerHandler.shared.onCancel = {
-        print("❌ Cancel save")
+          DispatchQueue.main.async {
+              self.viewModel.showFilesSuccessAlert = true
+              self.shareWindow?.isHidden = true
+              self.shareWindow = nil
+          }
       }
 
       if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
@@ -263,22 +270,24 @@ struct ResultView: View {
 
         self.shareWindow = pickerWindow
 
-        pickerWindow.rootViewController?.present(docPicker, animated: true)
-
         DocumentPickerHandler.shared.onCancel = {
           DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             pickerWindow.isHidden = true
             self.shareWindow = nil
+            self.viewModel.clearAlerts()
           }
         }
+
+        pickerWindow.rootViewController?.present(docPicker, animated: true)
       }
     }
   }
 
   private func shareVideo() {
     guard let url = URL(string: viewModel.videoUrl) else { return }
+    
     if let cachedURL = VideoCacheService.shared.getCachedVideoURL(for: url) {
-      presentShareSheet(with: cachedURL)
+      shareVideoFromURL(cachedURL)
       return
     }
 
@@ -286,9 +295,14 @@ struct ResultView: View {
     let tempDirectory = fileManager.temporaryDirectory
     let destinationURL = tempDirectory.appendingPathComponent(url.lastPathComponent)
 
-    URLSession.shared.downloadTask(with: url) { downloadedURL, _, error in
+    viewModel.isLoading = true
+
+    URLSession.shared.downloadTask(with: url) { downloadedURL, response, error in
       guard let downloadedURL = downloadedURL else {
         print("❌ Error loading video: \(error?.localizedDescription ?? "Unknown error")")
+        DispatchQueue.main.async {
+          self.viewModel.isLoading = false
+        }
         return
       }
 
@@ -298,60 +312,68 @@ struct ResultView: View {
         }
 
         try fileManager.moveItem(at: downloadedURL, to: destinationURL)
-
-        DispatchQueue.main.async {
-          if let shareableURL = getShareableFileURL(for: url) {
-            presentShareSheet(with: shareableURL)
+        
+        VideoCacheService.shared.cacheVideo(from: destinationURL) { cachedURL in
+          if cachedURL != nil {
+            DispatchQueue.main.async {
+              self.viewModel.isLoading = false
+              self.shareVideoFromURL(destinationURL)
+            }
           } else {
-            print("❌ Can't create copy video for share")
+            DispatchQueue.main.async {
+              self.viewModel.isLoading = false
+            }
           }
         }
       } catch {
         print("❌ Error saving video: \(error.localizedDescription)")
+        DispatchQueue.main.async {
+          self.viewModel.isLoading = false
+        }
       }
     }.resume()
   }
 
-  private func presentShareSheet(with url: URL) {
-    let activityVC = UIActivityViewController(
-      activityItems: [url],
-      applicationActivities: nil
-    )
-
-    activityVC.completionWithItemsHandler = { _, _, _, _ in
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-        self.shareWindow?.isHidden = true
-        self.shareWindow = nil
-      }
+  private func shareVideoFromURL(_ url: URL) {
+    guard FileManager.default.fileExists(atPath: url.path) else {
+      print("❌ Video file does not exist at path: \(url.path)")
+      return
     }
 
-    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-       let window = windowScene.windows.first(where: { $0.isKeyWindow }) {
-      let shareWindow = UIWindow(windowScene: windowScene)
-      shareWindow.rootViewController = UIViewController()
-      shareWindow.makeKeyAndVisible()
-
-      self.shareWindow = shareWindow
-
-      shareWindow.rootViewController?.present(activityVC, animated: true)
-    } else {
-      print("❌ Error: can't find active window")
-    }
-  }
-
-  func getShareableFileURL(for url: URL) -> URL? {
-    let fileManager = FileManager.default
-    let tempURL = fileManager.temporaryDirectory.appendingPathComponent(url.lastPathComponent)
-
+    let tempDirectory = FileManager.default.temporaryDirectory
+    let shareURL = tempDirectory.appendingPathComponent("share_\(url.lastPathComponent)")
+    
     do {
-      if fileManager.fileExists(atPath: tempURL.path) {
-        try fileManager.removeItem(at: tempURL)
+      if FileManager.default.fileExists(atPath: shareURL.path) {
+        try FileManager.default.removeItem(at: shareURL)
       }
-      try fileManager.copyItem(at: url, to: tempURL)
-      return tempURL
+      try FileManager.default.copyItem(at: url, to: shareURL)
+      
+      DispatchQueue.main.async {
+        let activityVC = UIActivityViewController(
+          activityItems: [shareURL],
+          applicationActivities: nil
+        )
+        
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+          let shareWindow = UIWindow(windowScene: windowScene)
+          shareWindow.rootViewController = UIViewController()
+          shareWindow.makeKeyAndVisible()
+          
+          self.shareWindow = shareWindow
+          
+          activityVC.completionWithItemsHandler = { _, _, _, _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+              shareWindow.isHidden = true
+              self.shareWindow = nil
+            }
+          }
+          
+          shareWindow.rootViewController?.present(activityVC, animated: true)
+        }
+      }
     } catch {
-      print("❌ Error copy file: \(error.localizedDescription)")
-      return nil
+      print("❌ Error preparing video for share: \(error.localizedDescription)")
     }
   }
 }

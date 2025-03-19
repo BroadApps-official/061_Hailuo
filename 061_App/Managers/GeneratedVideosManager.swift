@@ -14,13 +14,15 @@ class GeneratedVideosManager: ObservableObject {
   
   @MainActor
   func addVideo(_ video: GeneratedVideo) {
-    videos.append(video)
-    saveVideos()
+    if !videos.contains(where: { $0.generationId == video.generationId }) {
+      videos.append(video)
+      saveVideos()
+    }
   }
   
   @MainActor
   func updateVideo(_ video: GeneratedVideo) {
-    if let index = videos.firstIndex(where: { $0.id == video.id }) {
+    if let index = videos.firstIndex(where: { $0.id == video.id && $0.generationId == video.generationId }) {
       videos[index] = video
       saveVideos()
     }

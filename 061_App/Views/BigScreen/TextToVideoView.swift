@@ -7,6 +7,7 @@ struct TextToVideoView: View {
   @FocusState private var isTextEditorFocused: Bool
   @StateObject private var effectsViewModel = EffectsViewModel()
   @EnvironmentObject private var networkMonitor: NetworkMonitor
+  @State private var keyboardHeight: CGFloat = 0
 
   var body: some View {
     VStack(spacing: 20) {
@@ -29,7 +30,7 @@ struct TextToVideoView: View {
 
       ZStack(alignment: .topLeading) {
           DoneTextEditor(text: $text)
-              .frame(height: UIScreen.main.bounds.height / 2)
+              .frame(maxHeight: UIScreen.main.bounds.height * 0.4)
               .padding(10)
               .background(Color.black)
               .cornerRadius(12)
@@ -55,10 +56,9 @@ struct TextToVideoView: View {
                       .background(Color.gray.opacity(0.6))
                       .clipShape(Circle())
               }
-              .offset(x: UIScreen.main.bounds.width - 70, y: UIScreen.main.bounds.height / 2 - 35)
+              .offset(x: UIScreen.main.bounds.width - 70, y: UIScreen.main.bounds.height * 0.4 - 35)
           }
       }
-
       .padding(.top, 20)
 
       Spacer()
@@ -84,6 +84,17 @@ struct TextToVideoView: View {
     }
     .onTapGesture {
       hideKeyboard()
+    }
+    .onAppear {
+      NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
+        if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+          keyboardHeight = keyboardFrame.height
+        }
+      }
+      
+      NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
+        keyboardHeight = 0
+      }
     }
   }
 

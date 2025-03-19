@@ -4,6 +4,7 @@ import ApphudSDK
 
 struct PaywallView: View {
     @Environment(\.dismiss) var dismiss
+    @AppStorage("hasSeenPaywall") private var hasSeenPaywall = false
     @ObservedObject var subscriptionManager = SubscriptionManager.shared
     @State private var selectedPlan: ApphudProduct?
     @State private var isPurchasing = false
@@ -40,7 +41,10 @@ struct PaywallView: View {
                             if showCloseButton {
                                 HStack {
                                   Spacer()
-                                    Button(action: { dismiss() }) {
+                                    Button(action: {
+                                        hasSeenPaywall = true
+                                        dismiss()
+                                    }) {
                                         Image(systemName: "xmark")
                                             .resizable()
                                             .scaledToFit()

@@ -85,6 +85,7 @@ struct OnboardingView: View {
   private func requestNotificationPermission() {
     UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
       DispatchQueue.main.async {
+        NotificationManager.shared.isNotificationsEnabled = granted
         hasSeenOnboarding = true
       }
     }

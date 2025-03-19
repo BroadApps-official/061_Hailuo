@@ -4,7 +4,8 @@ import StoreKit
 import UserNotifications
 
 struct SettingsView: View {
-  @State private var isNotificationsEnabled = UserDefaults.standard.bool(forKey: "isNotification")
+  @State private var isNotificationsEnabled = false
+  @ObservedObject private var notificationManager = NotificationManager.shared
   @State private var isScrolled = false
   @State private var cacheSize: String = "Calculating..."
   @State private var isClearingCache = false
@@ -38,8 +39,9 @@ struct SettingsView: View {
           SettingButton(title: "Contact us", icon: "set7", action: contactSupport)
           SettingButton(title: "Privacy Policy", icon: "set8", action: openPrivacyPolicy)
           SettingButton(title: "Usage Policy", icon: "set9", action: openUsagePolicy)
-          
-          Text("App Version: 1.0.0")
+
+          let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.0"
+          Text("App Version: \(version)")
             .foregroundColor(.gray)
             .font(.caption)
             .frame(maxWidth: .infinity, alignment: .center)
@@ -71,7 +73,15 @@ struct SettingsView: View {
       .toolbarBackground(.black, for: .navigationBar)
       .toolbarBackground(.visible, for: .navigationBar)
       .onAppear {
+        checkNotificationStatus()
         calculateCacheSize()
+      }
+      .onChange(of: notificationManager.isNotificationsEnabled) { newValue in
+        print("📱 SettingsView: Notification status changed to \(newValue)")
+        isNotificationsEnabled = newValue
+      }
+      .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+        checkNotificationStatus()
       }
       .fullScreenCover(isPresented: $showPaywall) {
         PaywallView()
@@ -127,25 +137,59 @@ struct SettingsView: View {
       }
     }
   }
-  
+
+  private func ToggleSetting(title: String, icon: String, isOn: Binding<Bool>, action: @escaping () -> Void) -> AnyView {
+    let toggle = Toggle("", isOn: isOn)
+      .labelsHidden()
+      .tint(ColorPalette.Accent.primary)
+    
+    let toggleWithAction = toggle.onChange(of: isOn.wrappedValue) { newValue in
+      if newValue {
+        notificationManager.requestNotificationPermission()
+      } else {
+        notificationManager.disableNotifications()
+      }
+    }
+    
+    return AnyView(
+      HStack {
+        Image(icon)
+        Text(title)
+          .foregroundColor(.white)
+        Spacer()
+        toggleWithAction
+      }
+      .padding()
+      .background(ColorPalette.Background.primaryAlpha)
+      .cornerRadius(12)
+    )
+  }
+
+  private func checkNotificationStatus() {
+    UNUserNotificationCenter.current().getNotificationSettings { settings in
+      DispatchQueue.main.async {
+        let isAuthorized = settings.authorizationStatus == .authorized
+        print("📱 SettingsView: Checking notification status: \(settings.authorizationStatus.rawValue), isEnabled: \(isAuthorized)")
+        if settings.authorizationStatus != .denied {
+          isNotificationsEnabled = isAuthorized
+          notificationManager.isNotificationsEnabled = isAuthorized
+        }
+      }
+    }
+  }
+
   private func toggleNotifications() {
     let center = UNUserNotificationCenter.current()
     center.getNotificationSettings { settings in
       DispatchQueue.main.async {
         switch settings.authorizationStatus {
         case .authorized:
-          isNotificationsEnabled.toggle()
-          UserDefaults.standard.setValue(isNotificationsEnabled, forKey: "isNotification")
+          notificationManager.disableNotifications()
         case .denied:
-          print("Notifications disabled in settings")
+          print("📱 SettingsView: Notifications disabled in settings")
           isNotificationsEnabled = false
         case .notDetermined:
-          center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
-            DispatchQueue.main.async {
-              isNotificationsEnabled = granted
-              UserDefaults.standard.setValue(granted, forKey: "isNotification")
-            }
-          }
+          notificationManager.requestNotificationPermission()
         default:
           break
         }
@@ -298,28 +342,6 @@ struct SettingButton: View {
       .background(ColorPalette.Background.primaryAlpha)
       .cornerRadius(12)
     }
-  }
-}
-
-struct ToggleSetting: View {
-  let title: String
-  let icon: String
-  @Binding var isOn: Bool
-  var action: () -> Void
-  
-  var body: some View {
-    HStack {
-      Image(icon)
-      Text(title)
-        .foregroundColor(.white)
-      Spacer()
-      Toggle("", isOn: $isOn)
-        .labelsHidden()
-        .onChange(of: isOn, perform: { _ in action() })
-    }
-    .padding()
-    .background(ColorPalette.Background.primaryAlpha)
-    .cornerRadius(12)
   }
 }
 
