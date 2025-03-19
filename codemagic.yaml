@@ -13,7 +13,7 @@ workflows:
         BUNDLE_ID: "com.yul.a1h41lu0v1g3n"
         XCODE_PROJECT: "061_App.xcodeproj"
         XCODE_SCHEME: "061_App"
-        APP_STORE_APPLE_ID: ID прилы
+        APP_STORE_APPLE_ID: 6743318475
       xcode: latest # <-- set to specific version e.g. 14.3, 15.0 to avoid unexpected updates.
     scripts:
       - name: Resolve Swift Package Manager dependencies
