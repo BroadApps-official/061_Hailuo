@@ -32,11 +32,24 @@ struct MainContentView: View {
                       .font(.headline)
                       .foregroundColor(.white)
                   Spacer()
-                  NavigationLink(destination: EffectsGridView(title: "Popular effects", effects: viewModel.popularEffects)) {
-                      Text("See All")
-                          .font(.subheadline)
-                          .foregroundColor(ColorPalette.Accent.primary)
-                  }
+                NavigationLink(destination: EffectsGridView(title: "Popular effects", effects: viewModel.popularEffects)) {
+                    HStack(spacing: 4) {
+                        Text("See all")
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.black)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.white, lineWidth: 1)
+                    )
+                }
               }
               .padding(.horizontal, 16)
 
@@ -60,9 +73,22 @@ struct MainContentView: View {
                 .foregroundColor(.white)
               Spacer()
               NavigationLink(destination: EffectsGridView(title: "All effects", effects: viewModel.allEffects)) {
-                Text("See All")
-                  .font(.subheadline)
-                  .foregroundColor(ColorPalette.Accent.primary)
+                HStack(spacing: 4) {
+                    Text("See all")
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.white)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.black)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.white, lineWidth: 1)
+                )
               }
             }
             .padding(.horizontal, 16)
@@ -182,4 +208,9 @@ struct EffectCell: View {
         .padding(.leading, 6)
     }
   }
+}
+
+
+#Preview {
+  MainContentView()
 }
