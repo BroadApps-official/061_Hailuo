@@ -4,11 +4,21 @@ import SwiftUI
 class NotificationManager: ObservableObject {
   static let shared = NotificationManager()
   
-  @Published var isNotificationsEnabled: Bool = false
+  @Published var isNotificationsEnabled: Bool = false {
+    didSet {
+      print("📱 NotificationManager: Setting isNotificationsEnabled to \(isNotificationsEnabled)")
+      UserDefaults.standard.set(isNotificationsEnabled, forKey: "isNotificationsEnabled")
+      UserDefaults.standard.synchronize()
+    }
+  }
   private var isUpdatingStatus = false
+  private var userManuallyDisabled = false
   
   private init() {
     print("📱 NotificationManager: Initializing")
+    isNotificationsEnabled = UserDefaults.standard.bool(forKey: "isNotificationsEnabled")
+    userManuallyDisabled = UserDefaults.standard.bool(forKey: "userManuallyDisabled")
+    print("📱 NotificationManager: Loaded saved state: \(isNotificationsEnabled), manually disabled: \(userManuallyDisabled)")
     checkNotificationStatus()
     setupNotificationObservers()
   }
@@ -36,8 +46,10 @@ class NotificationManager: ObservableObject {
       DispatchQueue.main.async {
         let isAuthorized = settings.authorizationStatus == .authorized
         print("📱 NotificationManager: Status: \(settings.authorizationStatus.rawValue), isEnabled: \(isAuthorized)")
-        if settings.authorizationStatus != .denied {
+        
+        if !self.userManuallyDisabled && isAuthorized != self.isNotificationsEnabled && settings.authorizationStatus != .denied {
           self.isNotificationsEnabled = isAuthorized
+          UserDefaults.standard.synchronize()
         }
         self.isUpdatingStatus = false
       }
@@ -54,6 +66,9 @@ class NotificationManager: ObservableObject {
         print("📱 NotificationManager: Permission granted: \(granted)")
         if granted {
           self.isNotificationsEnabled = true
+          self.userManuallyDisabled = false
+          UserDefaults.standard.set(false, forKey: "userManuallyDisabled")
+          UserDefaults.standard.synchronize()
         }
         self.isUpdatingStatus = false
       }
@@ -68,6 +83,9 @@ class NotificationManager: ObservableObject {
     UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     DispatchQueue.main.async {
       self.isNotificationsEnabled = false
+      self.userManuallyDisabled = true
+      UserDefaults.standard.set(true, forKey: "userManuallyDisabled")
+      UserDefaults.standard.synchronize()
       self.isUpdatingStatus = false
     }
   }

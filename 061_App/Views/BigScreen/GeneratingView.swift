@@ -18,6 +18,8 @@ struct GeneratingView: View {
   @State private var resultVideoUrl: String?
   @State private var resultPromptText: String?
   @State private var showErrorAlert = false
+  @StateObject private var hailuoManager = HailuoManager.shared
+  @StateObject private var generationManager = GenerationManager.shared
 
   init(imageData: Data? = nil, text: String? = nil, effectId: String? = nil) {
     self.imageData = imageData
@@ -69,6 +71,16 @@ struct GeneratingView: View {
       } message: {
         Text(" Error! Try again later.")
       }
+      .alert("Maximum Generations Reached", isPresented: $apiManager.showMaxGenerationsAlert) {
+        Button("OK", role: .cancel) { }
+      } message: {
+        Text("You can only have \(generationManager.maxGenerations) active generations at a time. Please wait for one to complete before starting another.")
+      }
+      .alert("Maximum Generations Reached", isPresented: $hailuoManager.showMaxGenerationsAlert) {
+        Button("OK", role: .cancel) { }
+      } message: {
+        Text("You can only have \(generationManager.maxGenerations) active generations at a time. Please wait for one to complete before starting another.")
+      }
       .navigationDestination(isPresented: $showResultView) {
         if let videoUrl = generatedVideoUrl {
           ResultView(videoUrl: videoUrl, promptText: text)
@@ -96,6 +108,13 @@ struct GeneratingView: View {
     isGenerating = true
     do {
       if let imageData = imageData, let effectId = effectId {
+        if let existingVideo = GeneratedVideosManager.shared.videos.first(where: { $0.status == .generating && $0.effectId == Int(effectId) }) {
+          print("✅ Found active generation: ID \(existingVideo.generationId)")
+          lastGenerationId = existingVideo.generationId
+          await startCheckingStatus(for: lastGenerationId!)
+          return
+        }
+        
         let response = try await HailuoManager.shared.generateVideo(from: imageData, filterId: effectId)
         if response.error {
           error = response.messages.first ?? "Unknown error occurred"
@@ -104,12 +123,12 @@ struct GeneratingView: View {
 
         var lastGeneration: Generation?
         var attempts = 0
-        let maxAttempts = 5
+        let maxAttempts = 50
         
         while attempts < maxAttempts {
           let generations = try await HailuoManager.shared.fetchUserGenerations()
-          lastGeneration = generations.last(where: { $0.status == 1 || $0.status == 2 })
-          
+          lastGeneration = generations.last(where: { $0.status == 1 || $0.status == 2 || $0.status == 0  })
+
           if lastGeneration != nil {
             print("✅ Found active generation: ID \(lastGeneration!.id), status \(lastGeneration!.status)")
             break
@@ -123,8 +142,7 @@ struct GeneratingView: View {
         if let lastGeneration = lastGeneration {
           let generationId = String(lastGeneration.id)
           lastGenerationId = generationId
-          
-          // Создаем уникальный ID для видео
+
           let videoId = UUID().uuidString
           
           DispatchQueue.main.async {
@@ -136,7 +154,7 @@ struct GeneratingView: View {
                 promptText: text,
                 createdAt: Date(),
                 status: .generating,
-                resultUrl: nil
+                effectId: Int(effectId)
               )
             )
           }
@@ -145,11 +163,13 @@ struct GeneratingView: View {
         } else {
           error = "Failed to start generation after \(maxAttempts) attempts"
         }
-      } else if let text = text, let imageData = imageData, let imageUrl = saveImageToTempDirectory(imageData) {
+      } 
+      else if let text = text, let imageData = imageData, let imageUrl = saveImageToTempDirectory(imageData) {
         apiManager.generatePikaScenes(imageUrls: [imageUrl], promptText: text) { result in
           handleGenerationResult(result)
         }
-      } else if let text = text {
+      }
+      else if let text = text {
         apiManager.generateTextToVideo(promptText: text) { result in
           handleGenerationResult(result)
         }
@@ -181,8 +201,7 @@ struct GeneratingView: View {
       case .success(let generationId):
         print("✅ Generation start, ID: \(generationId)")
         lastGenerationId = generationId
-        
-        // Создаем уникальный ID для видео
+
         let videoId = UUID().uuidString
         
         GeneratedVideosManager.shared.addVideo(
@@ -193,9 +212,13 @@ struct GeneratingView: View {
             promptText: text,
             createdAt: Date(),
             status: .generating,
-            resultUrl: nil
+            effectId: effectId.flatMap { Int($0) }
           )
         )
+        
+        Task {
+          await self.startCheckingStatus(for: generationId)
+        }
 
       case .failure(let apiError):
         error = apiError.localizedDescription
@@ -206,30 +229,23 @@ struct GeneratingView: View {
   }
 
   private func startCheckingStatus(for generationId: String) async {
-    // Только для HailuoManager, так как APIManager уже имеет свой механизм отслеживания
-    if effectId != nil {
-      await MainActor.run {
-        // Инвалидируем существующий таймер для этого generationId, если он есть
-        timers[generationId]?.invalidate()
-        
-        // Создаем новый таймер для этого generationId
-        let timer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { _ in
-          print("🔄 [TIMER] Status for ID: \(generationId)...")
-          Task {
-            await self.checkGenerationStatus(for: generationId)
-          }
+    await MainActor.run {
+      timers[generationId]?.invalidate()
+
+      let timer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { _ in
+        print("🔄 [TIMER] Status for ID: \(generationId)...")
+        Task {
+          await self.checkGenerationStatus(for: generationId)
         }
-        
-        // Сохраняем таймер в словаре
-        timers[generationId] = timer
       }
+      timers[generationId] = timer
     }
   }
 
   @MainActor
   private func checkGenerationStatus(for generationId: String) async {
     do {
-      if effectId != nil {
+      if let effectId = effectId {
         let generations = try await HailuoManager.shared.fetchUserGenerations()
 
         if let generation = generations.first(where: { $0.id == Int(generationId) }) {
@@ -238,7 +254,6 @@ struct GeneratingView: View {
           switch generation.status {
           case 3:
             if let videoUrl = generation.result {
-              // Инвалидируем таймер для этой генерации
               timers[generationId]?.invalidate()
               timers.removeValue(forKey: generationId)
               
@@ -251,17 +266,19 @@ struct GeneratingView: View {
                     promptText: video.promptText,
                     createdAt: video.createdAt,
                     status: .completed,
-                    resultUrl: videoUrl
+                    resultUrl: videoUrl,
+                    effectId: Int(effectId)
                   )
                 )
                 print("🎉 Video done: \(videoUrl)")
                 self.generatedVideoUrl = videoUrl
                 self.isGenerating = false
                 self.showResultView = true
+              } else {
+                print("⚠️ Error, no video found for ID: \(generationId)")
               }
             }
-          case 4: 
-            // Инвалидируем таймер для этой генерации
+          case 4:
             timers[generationId]?.invalidate()
             timers.removeValue(forKey: generationId)
             
@@ -282,7 +299,6 @@ struct GeneratingView: View {
         switch status.status {
         case "completed", "finished":
           if let videoUrl = status.resultUrl {
-            // Инвалидируем таймер для этой генерации
             timers[generationId]?.invalidate()
             timers.removeValue(forKey: generationId)
             
@@ -295,17 +311,19 @@ struct GeneratingView: View {
                   promptText: video.promptText,
                   createdAt: video.createdAt,
                   status: .completed,
-                  resultUrl: videoUrl
+                  resultUrl: videoUrl,
+                  effectId: nil
                 )
               )
               print("🎉 Video done: \(videoUrl)")
               self.generatedVideoUrl = videoUrl
               self.isGenerating = false
               self.showResultView = true
+            } else {
+              print("⚠️ Error, no video found for ID: \(generationId)")
             }
           }
         case "failed":
-          // Инвалидируем таймер для этой генерации
           timers[generationId]?.invalidate()
           timers.removeValue(forKey: generationId)
           

@@ -10,6 +10,10 @@ final class APIManager: ObservableObject {
   @AppStorage("apphudUserId") private var storedUserId: String?
   private var lastResultUrl: String?
   private var trackingTimers: [String: Timer] = [:]
+  private var activeGenerations: Set<String> = []
+  private var activeGenerationPrompts: [String: String] = [:]
+  private var activeGenerationImages: [String: [URL]] = [:]
+  @Published var showMaxGenerationsAlert = false
 
   var userId: String {
     if let existingId = storedUserId {
@@ -44,6 +48,22 @@ final class APIManager: ObservableObject {
   }
 
   func generatePikaScenes(imageUrls: [URL], promptText: String, completion: @escaping (Result<String, Error>) -> Void) {
+    guard GenerationManager.shared.canStartNewGeneration() else {
+      showMaxGenerationsAlert = true
+      completion(.failure(APIError.maxGenerationsReached))
+      return
+    }
+
+    let key = "pikaScenes_\(promptText)_\(imageUrls.map { $0.absoluteString }.joined())"
+    if activeGenerationPrompts[key] != nil {
+      print("⚠️ Generation with same prompt and images is already in progress")
+      completion(.failure(APIError.generationInProgress))
+      return
+    }
+    activeGenerations.insert("pikaScenes")
+    activeGenerationPrompts[key] = promptText
+    activeGenerationImages[key] = imageUrls
+
     let boundary = UUID().uuidString
     let endpoint = "\(baseURL)/generate/pikaScenes"
     var request = URLRequest(url: URL(string: endpoint)!)
@@ -121,11 +141,13 @@ final class APIManager: ObservableObject {
             videoUrl: "",
             promptText: promptText,
             createdAt: Date(),
-            status: .generating
+            status: .generating,
+            effectId: nil
           )
           GeneratedVideosManager.shared.addVideo(video)
+          GenerationManager.shared.addGeneration(generationId)
 
-          self?.startTrackingGeneration(generationId: generationId)
+          self?.startTrackingGeneration(generationId: generationId, generationType: "pikaScenes")
 
           completion(.success(generationId))
         } else {
@@ -140,6 +162,20 @@ final class APIManager: ObservableObject {
   }
 
   func generateTextToVideo(promptText: String, completion: @escaping (Result<String, Error>) -> Void) {
+    guard GenerationManager.shared.canStartNewGeneration() else {
+      showMaxGenerationsAlert = true
+      completion(.failure(APIError.maxGenerationsReached))
+      return
+    }
+
+    let key = "textToVideo_\(promptText)"
+    if activeGenerationPrompts[key] != nil {
+      print("⚠️ Generation with same prompt is already in progress")
+      return
+    }
+    activeGenerations.insert("textToVideo")
+    activeGenerationPrompts[key] = promptText
+
     let parameters: [String: Any] = [
       "promptText": promptText,
       "userId": userId,
@@ -196,11 +232,13 @@ final class APIManager: ObservableObject {
             videoUrl: "",
             promptText: promptText,
             createdAt: Date(),
-            status: .generating
+            status: .generating,
+            effectId: nil
           )
           GeneratedVideosManager.shared.addVideo(video)
+          GenerationManager.shared.addGeneration(generationId)
 
-          self?.startTrackingGeneration(generationId: generationId)
+          self?.startTrackingGeneration(generationId: generationId, generationType: "textToVideo")
           completion(.success(generationId))
         } else {
           completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON format"])))
@@ -214,6 +252,22 @@ final class APIManager: ObservableObject {
   }
 
   func generateImageTextToVideo(imageUrls: [URL], promptText: String, completion: @escaping (Result<String, Error>) -> Void) {
+    guard GenerationManager.shared.canStartNewGeneration() else {
+      showMaxGenerationsAlert = true
+      completion(.failure(APIError.maxGenerationsReached))
+      return
+    }
+
+    let key = "imageTextToVideo_\(promptText)_\(imageUrls.map { $0.absoluteString }.joined())"
+    if activeGenerationPrompts[key] != nil {
+      print("⚠️ Generation with same prompt and images is already in progress")
+      completion(.failure(APIError.generationInProgress))
+      return
+    }
+    activeGenerations.insert("imageTextToVideo")
+    activeGenerationPrompts[key] = promptText
+    activeGenerationImages[key] = imageUrls
+
     let boundary = UUID().uuidString
     let endpoint = "\(baseURL)/generate/pikaScenes"
     var request = URLRequest(url: URL(string: endpoint)!)
@@ -291,11 +345,13 @@ final class APIManager: ObservableObject {
             videoUrl: "",
             promptText: promptText,
             createdAt: Date(),
-            status: .generating
+            status: .generating,
+            effectId: nil
           )
           GeneratedVideosManager.shared.addVideo(video)
+          GenerationManager.shared.addGeneration(generationId)
 
-          self?.startTrackingGeneration(generationId: generationId)
+          self?.startTrackingGeneration(generationId: generationId, generationType: "imageTextToVideo")
           completion(.success(generationId))
         } else {
           completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON format"])))
@@ -308,11 +364,15 @@ final class APIManager: ObservableObject {
     task.resume()
   }
 
-  private func startTrackingGeneration(generationId: String) {
-    // Инвалидируем существующий таймер, если он есть
-    trackingTimers[generationId]?.invalidate()
+  private func startTrackingGeneration(generationId: String, generationType: String) {
+    if activeGenerations.contains(generationType) {
+      print("⚠️ Generation of type \(generationType) is already in progress")
+      return
+    }
     
-    // Создаем новый таймер для этой генерации
+    trackingTimers[generationId]?.invalidate()
+    activeGenerations.insert(generationType)
+    
     let timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] timer in
       guard let self = self else { return }
 
@@ -326,9 +386,15 @@ final class APIManager: ObservableObject {
 
           case "completed", "finished":
             if let videoUrl = response.resultUrl {
-              // Инвалидируем таймер для этой генерации
               self.trackingTimers[generationId]?.invalidate()
               self.trackingTimers.removeValue(forKey: generationId)
+              self.activeGenerations.remove(generationType)
+              GenerationManager.shared.removeGeneration(generationId)
+              
+              if let prompt = self.activeGenerationPrompts.first(where: { $0.value == generationId })?.key {
+                self.activeGenerationPrompts.removeValue(forKey: prompt)
+                self.activeGenerationImages.removeValue(forKey: prompt)
+              }
               
               if let video = await GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId && $0.status == .generating }) {
                 await GeneratedVideosManager.shared.updateVideoStatus(id: video.id, status: .completed, resultUrl: videoUrl)
@@ -336,15 +402,23 @@ final class APIManager: ObservableObject {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                   NotificationManager.shared.sendVideoReadyNotification()
                 }
+              } else {
+                print("⚠️ Error, no video found for ID: \(generationId)")
               }
             } else {
               print("⚠️ Error, no video URL for ID: \(generationId)")
             }
 
           case "failed", "error":
-            // Инвалидируем таймер для этой генерации
             self.trackingTimers[generationId]?.invalidate()
             self.trackingTimers.removeValue(forKey: generationId)
+            self.activeGenerations.remove(generationType)
+            GenerationManager.shared.removeGeneration(generationId)
+            
+            if let prompt = self.activeGenerationPrompts.first(where: { $0.value == generationId })?.key {
+              self.activeGenerationPrompts.removeValue(forKey: prompt)
+              self.activeGenerationImages.removeValue(forKey: prompt)
+            }
             
             if let video = await GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId && $0.status == .generating }) {
               await GeneratedVideosManager.shared.updateVideoStatus(id: video.id, status: .failed)
@@ -354,24 +428,24 @@ final class APIManager: ObservableObject {
             print("❓ Unknown status for ID \(generationId): \(response.status)")
           }
         } catch {
-          // Инвалидируем таймер для этой генерации
+          print("❌ Error checking status: \(error)")
           self.trackingTimers[generationId]?.invalidate()
           self.trackingTimers.removeValue(forKey: generationId)
+          self.activeGenerations.remove(generationType)
+          GenerationManager.shared.removeGeneration(generationId)
           
-          if let video = await GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId && $0.status == .generating }) {
-            await GeneratedVideosManager.shared.updateVideoStatus(id: video.id, status: .failed)
+          if let prompt = self.activeGenerationPrompts.first(where: { $0.value == generationId })?.key {
+            self.activeGenerationPrompts.removeValue(forKey: prompt)
+            self.activeGenerationImages.removeValue(forKey: prompt)
           }
-          print("❌ Error checking status for ID \(generationId): \(error.localizedDescription)")
         }
       }
     }
     
-    // Сохраняем таймер в словаре
     trackingTimers[generationId] = timer
   }
 
   deinit {
-    // Очищаем все таймеры при деинициализации
     trackingTimers.values.forEach { $0.invalidate() }
     trackingTimers.removeAll()
   }

@@ -1,14 +1,22 @@
 import SwiftUI
 import ApphudSDK
+import Combine
 
 @MainActor
 class SubscriptionManager: ObservableObject {
   static let shared = SubscriptionManager()
   
+  @Published private(set) var hasActiveSubscription = false
+  @Published private(set) var products: [ApphudProduct] = []
+  @Published private(set) var isLoading = false
+  @Published private(set) var error: String?
+  
   @Published var productsApphud: [ApphudProduct] = []
   @Published var isSubscribed: Bool = false
   
   private let paywallID = "main"
+  
+  private var cancellables = Set<AnyCancellable>()
   
   private init() {
     Task {

@@ -75,6 +75,11 @@ struct VideoCell: View {
         checkGenerationStatus()
       }
     }
+    .onChange(of: video.status) { newStatus in
+      if newStatus == .completed, let url = video.resultUrl {
+        loadThumbnail(from: url)
+      }
+    }
     .onDisappear {
       isCheckingStatus = false
     }

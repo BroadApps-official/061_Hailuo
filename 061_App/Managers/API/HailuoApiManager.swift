@@ -15,7 +15,10 @@ final class HailuoManager: ObservableObject {
   @Published var newGenerations: [Generation] = []
   @Published var isGenerating = false
   @Published var error: String?
+  @Published var showMaxGenerationsAlert = false
   @AppStorage("apphudUserId") private var storedUserId: String?
+  private var activeGenerations: Set<String> = []
+  private var activeGenerationImages: [String: Data] = [:]
 
   var userId: String {
     if let existingId = storedUserId {
@@ -70,6 +73,22 @@ final class HailuoManager: ObservableObject {
   }
 
   func generateVideo(from imageData: Data, filterId: String? = nil) async throws -> VideoGenerationResponse {
+    guard GenerationManager.shared.canStartNewGeneration() else {
+      showMaxGenerationsAlert = true
+      throw APIError.maxGenerationsReached
+    }
+
+    if let filterId = filterId {
+      if let existingImageData = activeGenerationImages[filterId] {
+        if existingImageData == imageData {
+          print("⚠️ Generation with filterId \(filterId) and same image is already in progress")
+          throw APIError.generationInProgress
+        }
+      }
+      activeGenerations.insert(filterId)
+      activeGenerationImages[filterId] = imageData
+    }
+
     guard let correctedImageData = fixImageOrientation(imageData) else {
       throw APIError.invalidImageData
     }
@@ -118,6 +137,26 @@ final class HailuoManager: ObservableObject {
 
     let decoder = JSONDecoder()
     let videoResponse = try decoder.decode(VideoGenerationResponse.self, from: data)
+    
+    if let filterId = filterId {
+      activeGenerations.remove(filterId)
+      activeGenerationImages.removeValue(forKey: filterId)
+    }
+    
+    if let generationId = videoResponse.data.first {
+      let video = GeneratedVideo(
+        id: UUID().uuidString,
+        generationId: generationId,
+        videoUrl: "",
+        promptText: nil,
+        createdAt: Date(),
+        status: .generating,
+        effectId: filterId.flatMap { Int($0) }
+      )
+      GeneratedVideosManager.shared.addVideo(video)
+      GenerationManager.shared.addGeneration(generationId)
+    }
+    
     return videoResponse
   }
 
@@ -148,14 +187,40 @@ final class HailuoManager: ObservableObject {
 
     DispatchQueue.main.async {
       self.userGenerations = decodedResponse.data
-      for generation in decodedResponse.data {
-        if generation.status == 3 && generation.result != nil {
-          NotificationManager.shared.sendVideoReadyNotification()
-          break
-        }
+      if let completedGeneration = decodedResponse.data.first(where: { $0.status == 3 && $0.result != nil }) {
+        NotificationManager.shared.sendVideoReadyNotification()
+        GenerationManager.shared.removeGeneration(String(completedGeneration.id))
       }
     }
 
     return decodedResponse.data
+  }
+
+  func fetchGenerationStatus(generationId: String) async throws -> GenerationStatusResponse {
+    guard let url = URL(string: "\(baseURL)/generation/\(generationId)?appId=\(appId)&userId=\(userId)") else {
+      throw APIError.invalidURL
+    }
+
+    var request = URLRequest(url: url)
+    request.addValue("application/json", forHTTPHeaderField: "Accept")
+    request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+    let (data, response) = try await URLSession.shared.data(for: request)
+
+    guard let httpResponse = response as? HTTPURLResponse else {
+      throw APIError.invalidResponse
+    }
+
+    guard httpResponse.statusCode == 200 else {
+      throw APIError.invalidResponse
+    }
+
+    let decodedResponse = try JSONDecoder().decode(GenerationStatusResponse.self, from: data)
+
+    if decodedResponse.error {
+      throw APIError.serverError
+    }
+
+    return decodedResponse
   }
 }

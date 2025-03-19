@@ -8,15 +8,15 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "555D8DC6-EB6E-4C19-A1D8-49E1AF6F6FDD"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "061_App/Managers/API/APIManager.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "233"
-            endingLineNumber = "233"
-            landmarkName = "generateImageTextToVideo(imageUrls:promptText:completion:)"
+            startingLineNumber = "232"
+            endingLineNumber = "232"
+            landmarkName = "generateTextToVideo(promptText:completion:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

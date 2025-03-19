@@ -73,6 +73,7 @@ struct SettingsView: View {
       .toolbarBackground(.black, for: .navigationBar)
       .toolbarBackground(.visible, for: .navigationBar)
       .onAppear {
+        isNotificationsEnabled = notificationManager.isNotificationsEnabled
         checkNotificationStatus()
         calculateCacheSize()
       }
@@ -144,11 +145,13 @@ struct SettingsView: View {
       .tint(ColorPalette.Accent.primary)
     
     let toggleWithAction = toggle.onChange(of: isOn.wrappedValue) { newValue in
+      print("📱 SettingsView: Toggle changed to \(newValue)")
       if newValue {
         notificationManager.requestNotificationPermission()
       } else {
         notificationManager.disableNotifications()
       }
+      UserDefaults.standard.synchronize()
     }
     
     return AnyView(
@@ -166,31 +169,45 @@ struct SettingsView: View {
   }
 
   private func checkNotificationStatus() {
+    print("📱 SettingsView: Checking notification status")
     UNUserNotificationCenter.current().getNotificationSettings { settings in
       DispatchQueue.main.async {
         let isAuthorized = settings.authorizationStatus == .authorized
-        print("📱 SettingsView: Checking notification status: \(settings.authorizationStatus.rawValue), isEnabled: \(isAuthorized)")
-        if settings.authorizationStatus != .denied {
+        print("📱 SettingsView: System notification status: \(settings.authorizationStatus.rawValue), isEnabled: \(isAuthorized)")
+        
+        // Не обновляем состояние, если пользователь вручную отключил уведомления
+        if !UserDefaults.standard.bool(forKey: "userManuallyDisabled") && isAuthorized != isNotificationsEnabled && settings.authorizationStatus != .denied {
           isNotificationsEnabled = isAuthorized
           notificationManager.isNotificationsEnabled = isAuthorized
+          UserDefaults.standard.synchronize()
         }
       }
     }
   }
 
   private func toggleNotifications() {
+    print("📱 SettingsView: Toggle notifications called")
     let center = UNUserNotificationCenter.current()
     center.getNotificationSettings { settings in
       DispatchQueue.main.async {
         switch settings.authorizationStatus {
         case .authorized:
+          print("📱 SettingsView: Disabling notifications")
           notificationManager.disableNotifications()
-        case .denied:
-          print("📱 SettingsView: Notifications disabled in settings")
           isNotificationsEnabled = false
+          UserDefaults.standard.set(true, forKey: "userManuallyDisabled")
+          UserDefaults.standard.synchronize()
+        case .denied:
+          print("📱 SettingsView: Notifications disabled in system settings")
+          isNotificationsEnabled = false
+          notificationManager.isNotificationsEnabled = false
+          UserDefaults.standard.set(true, forKey: "userManuallyDisabled")
+          UserDefaults.standard.synchronize()
         case .notDetermined:
+          print("📱 SettingsView: Requesting notification permission")
           notificationManager.requestNotificationPermission()
         default:
+          print("📱 SettingsView: Unknown notification status")
           break
         }
       }
@@ -348,31 +365,34 @@ struct SettingButton: View {
 struct ProBadgeButton: View {
   var isCompact: Bool = false
   @State private var showPaywall = false
+  @ObservedObject var subscriptionManager = SubscriptionManager.shared
   
   var body: some View {
-    Button(action: { showPaywall = true }) {
-      if isCompact {
-        Image(systemName: "sparkles")
-          .foregroundColor(.black)
-          .padding(10)
-          .background(GradientStyle.background)
-          .clipShape(Circle())
-      } else {
-        HStack(spacing: 6) {
-          Text("PRO")
-            .font(Typography.subheadlineEmphasized)
-            .foregroundColor(.black)
+    if !subscriptionManager.isSubscribed {
+      Button(action: { showPaywall = true }) {
+        if isCompact {
           Image(systemName: "sparkles")
             .foregroundColor(.black)
+            .padding(10)
+            .background(GradientStyle.background)
+            .clipShape(Circle())
+        } else {
+          HStack(spacing: 6) {
+            Text("PRO")
+              .font(Typography.subheadlineEmphasized)
+              .foregroundColor(.black)
+            Image(systemName: "sparkles")
+              .foregroundColor(.black)
+          }
+          .padding(.horizontal, 10)
+          .padding(.vertical, 6)
+          .background(GradientStyle.background)
+          .cornerRadius(16)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(GradientStyle.background)
-        .cornerRadius(16)
       }
-    }
-    .fullScreenCover(isPresented: $showPaywall) {
-      PaywallView()
+      .fullScreenCover(isPresented: $showPaywall) {
+        PaywallView()
+      }
     }
   }
 }

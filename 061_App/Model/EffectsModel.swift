@@ -58,6 +58,8 @@ enum APIError: Error {
   case invalidResponse
   case invalidURL
   case serverError
+  case maxGenerationsReached
+  case generationInProgress
 }
 
 struct GeneratedVideo: Identifiable, Codable, Hashable {
@@ -68,6 +70,7 @@ struct GeneratedVideo: Identifiable, Codable, Hashable {
   let createdAt: Date
   var status: VideoStatus
   var resultUrl: String?
+  let effectId: Int?
   
   enum VideoStatus: String, Codable {
     case generating
