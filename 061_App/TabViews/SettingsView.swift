@@ -215,7 +215,7 @@ struct SettingsView: View {
   }
   
   private func contactSupport() {
-    let email = "magnatamanju@gmail.com"
+    let email = "trangvb086796@gmail.com"
     let subject = "Support Request"
     let body = "Hello, I need help with..."
     let emailURL = "mailto:\(email)?subject=\(subject)&body=\(body)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
