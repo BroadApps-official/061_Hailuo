@@ -269,7 +269,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "-61-App-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Content amazing for creator";
+				INFOPLIST_KEY_CFBundleDisplayName = "Reference Powered Images\n";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Add a photo so we can do a cool effect with it";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Add a photo so we can do a cool effect with it";
@@ -310,7 +310,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "-61-App-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Content amazing for creator";
+				INFOPLIST_KEY_CFBundleDisplayName = "Reference Powered Images\n";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Add a photo so we can do a cool effect with it";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Add a photo so we can do a cool effect with it";
