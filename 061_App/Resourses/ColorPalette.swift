@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ColorPalette {
     struct Accent {
-        static let primary = Color(hex: "#EFBBFA")
+        static let primary = Color(hex: "#A5C3FF")
         static let primaryAlpha = Color(hex: "#FFEBCD").opacity(0.12)
         static let secondary = Color(hex: "#27A5FF")
         static let grey = Color(hex: "#63666F")
@@ -62,7 +62,7 @@ extension Color {
 
 struct GradientStyle {
     static let background = LinearGradient(
-        gradient: Gradient(colors: [Color(hex: "#FFBBEF"), Color(hex: "#E6CBFF")]),
+        gradient: Gradient(colors: [Color(hex: "#A5C3FF"), Color(hex: "#B5FFFE")]),
         startPoint: .leading,
         endPoint: .trailing
     )

@@ -38,6 +38,11 @@ class GeneratedVideosManager: ObservableObject {
       }
       videos[index] = updatedVideo
       saveVideos()
+      
+      // Удаляем генерацию из счетчика, если статус completed или failed
+      if status == .completed || status == .failed {
+        GenerationManager.shared.removeGeneration(updatedVideo.generationId)
+      }
     }
   }
   

@@ -16,6 +16,7 @@ struct CustomTabBarView: View {
         .tabItem {
           VStack {
             Image(tabManager.selectedTab == 0 ? "tab1select" : "tab1")
+              .foregroundColor(tabManager.selectedTab == 0 ? ColorPalette.Accent.primary : .gray)
           }
         }
         .tag(0)
@@ -25,6 +26,7 @@ struct CustomTabBarView: View {
         .tabItem {
           VStack {
             Image(tabManager.selectedTab == 1 ? "tab2select" : "tab2")
+              .foregroundColor(tabManager.selectedTab == 1 ? ColorPalette.Accent.primary : .gray)
           }
         }
         .tag(1)
@@ -34,6 +36,7 @@ struct CustomTabBarView: View {
         .tabItem {
           VStack {
             Image(tabManager.selectedTab == 2 ? "tab3select" : "tab3")
+              .foregroundColor(tabManager.selectedTab == 2 ? ColorPalette.Accent.primary : .gray)
           }
         }
         .tag(2)

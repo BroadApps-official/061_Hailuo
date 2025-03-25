@@ -247,49 +247,26 @@ struct GeneratingView: View {
     do {
       if let effectId = effectId {
         let generations = try await HailuoManager.shared.fetchUserGenerations()
-
-        if let generation = generations.first(where: { $0.id == Int(generationId) }) {
-          print("📱 Checking generation: \(generation.id) with status: \(generation.status)")
-          
-          switch generation.status {
-          case 3:
-            if let videoUrl = generation.result {
-              timers[generationId]?.invalidate()
-              timers.removeValue(forKey: generationId)
-              
-              if let video = GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId && $0.status == .generating }) {
-                GeneratedVideosManager.shared.updateVideo(
-                  GeneratedVideo(
-                    id: video.id,
-                    generationId: generationId,
-                    videoUrl: videoUrl,
-                    promptText: video.promptText,
-                    createdAt: video.createdAt,
-                    status: .completed,
-                    resultUrl: videoUrl,
-                    effectId: Int(effectId)
-                  )
-                )
-                print("🎉 Video done: \(videoUrl)")
-                self.generatedVideoUrl = videoUrl
-                self.isGenerating = false
-                self.showResultView = true
-              } else {
-                print("⚠️ Error, no video found for ID: \(generationId)")
-              }
-            }
-          case 4:
+        
+        if let generation = generations.first(where: { String($0.id) == generationId }) {
+          if generation.status == 3 {
+            // Генерация завершена
+            generationManager.removeGeneration(generationId)
             timers[generationId]?.invalidate()
             timers.removeValue(forKey: generationId)
             
-            if let video = GeneratedVideosManager.shared.videos.first(where: { $0.generationId == generationId && $0.status == .generating }) {
-              GeneratedVideosManager.shared.updateVideoStatus(id: video.id, status: .failed)
+            if let videoUrl = generation.result {
+              generatedVideoUrl = videoUrl
+              resultVideoUrl = videoUrl
+              resultPromptText = text
+              showResultView = true
             }
-            showErrorAlert = true
-            dismiss()
-            tabManager.selectedTab = 1
-          default:
-            print("⏳ Generation in progress...")
+          } else if generation.status == 4 {
+            // Генерация завершилась с ошибкой
+            generationManager.removeGeneration(generationId)
+            timers[generationId]?.invalidate()
+            timers.removeValue(forKey: generationId)
+            error = "Generation failed"
           }
         }
       } else {
